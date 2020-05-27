@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
@@ -49,7 +49,7 @@ class LanguageServiceImpl implements ng.LanguageService {
 
   getCompletionsAtPosition(
       fileName: string, position: number,
-      options?: tss.GetCompletionsAtPositionOptions): tss.CompletionInfo|undefined {
+      _options?: tss.GetCompletionsAtPositionOptions): tss.CompletionInfo|undefined {
     this.host.getAnalyzedModules();  // same role as 'synchronizeHostData'
     const ast = this.host.getTemplateAstAtPosition(fileName, position);
     if (!ast) {

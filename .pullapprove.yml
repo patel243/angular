@@ -40,6 +40,7 @@
 #  AndrewKushnir - Andrew Kushnir
 #  andrewseguin - Andrew Seguin
 #  atscott - Andrew Scott
+#  ayazhafiz - Ayaz Hafiz
 #  clydin - Charles Lyding
 #  crisbeto - Kristiyan Kostadinov
 #  dennispbrown - Denny Brown
@@ -96,6 +97,12 @@
 
 version: 3
 
+# Meta field that goes unused by PullApprove to allow for defining aliases to be
+# used throughout the config.
+meta:
+  1: &can-be-global-approved "\"global-approvers\" not in groups.approved"
+  2: &can-be-global-docs-approved "\"global-docs-approvers\" not in groups.approved"
+
 # turn on 'draft' support
 # https://docs.pullapprove.com/config/github-api-version/
 # https://developer.github.com/v3/previews/#draft-pull-requests
@@ -115,10 +122,48 @@ pullapprove_conditions:
 
 groups:
   # =========================================================
+  #  Global Approvers
+  #
+  # All reviews performed for global approvals require using
+  # the `Reviewed-for:` specifier to set the approval
+  # specificity as documented at:
+  # https://docs.pullapprove.com/reviewed-for/
+  # =========================================================
+  global-approvers:
+    type: optional
+    reviewers:
+      teams:
+        - framework-global-approvers
+    reviews:
+      request: 0
+      required: 1
+      reviewed_for: required
+
+  # =========================================================
+  #  Global Approvers For Docs
+  #
+  # All reviews performed for global docs approvals require
+  # using the `Reviewed-for:` specifier to set the approval
+  # specificity as documented at:
+  # https://docs.pullapprove.com/reviewed-for/
+  # =========================================================
+  global-docs-approvers:
+    type: optional
+    reviewers:
+      teams:
+        - framework-global-approvers-for-docs-only-changes
+    reviews:
+      request: 0
+      required: 1
+      reviewed_for: required
+
+  # =========================================================
   #  Framework: Animations
   # =========================================================
   fw-animations:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'packages/animations/**',
@@ -134,9 +179,6 @@ groups:
     reviewers:
       users:
         - matsko
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -144,8 +186,10 @@ groups:
   # =========================================================
   fw-compiler:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
-        contains_any_globs(files, [
+        contains_any_globs(files.exclude('packages/compiler-cli/ngcc/**'), [
           'packages/compiler/**',
           'packages/examples/compiler/**',
           'packages/compiler-cli/**',
@@ -160,9 +204,6 @@ groups:
         - AndrewKushnir
         - JoostK
         - kara
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -170,19 +211,31 @@ groups:
   # =========================================================
   fw-ngcc:
     conditions:
-      - >
-        contains_any_globs(files, [
-          'packages/compiler-cli/ngcc/**'
-          ])
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
+      - files.include('packages/compiler-cli/ngcc/**')
     reviewers:
       users:
         - alxhub
         - gkalpak
         - JoostK
         - petebacondarwin
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
+
+
+  # =========================================================
+  #  Framework: Migrations
+  # =========================================================
+  fw-migrations:
+    conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
+      - files.include("packages/core/schematics/**")
+    reviewers:
+      users:
+        - alxhub
+        - crisbeto
+        - devversion
+        - kara
 
 
   # =========================================================
@@ -190,8 +243,10 @@ groups:
   # =========================================================
   fw-core:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
-        contains_any_globs(files, [
+        contains_any_globs(files.exclude("packages/core/schematics/**"), [
           'packages/core/**',
           'packages/examples/core/**',
           'packages/common/**',
@@ -257,7 +312,6 @@ groups:
           'aio/content/examples/ngmodules/**',
           'aio/content/guide/ngmodule-api.md',
           'aio/content/guide/ngmodule-faq.md',
-          'aio/content/examples/ngmodule-faq/**',
           'aio/content/guide/ngmodule-vs-jsmodule.md',
           'aio/content/guide/module-types.md',
           'aio/content/guide/template-syntax.md',
@@ -297,12 +351,10 @@ groups:
       users:
         - alxhub
         - AndrewKushnir
+        - atscott
         - kara
         - mhevery
         - pkozlowski-opensource
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -310,10 +362,11 @@ groups:
   # =========================================================
   fw-http:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'packages/common/http/**',
-          'packages/http/**',
           'packages/examples/http/**',
           'aio/content/guide/http.md',
           'aio/content/examples/http/**',
@@ -323,9 +376,6 @@ groups:
       users:
         - alxhub
         - IgorMinar
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -333,6 +383,8 @@ groups:
   # =========================================================
   fw-elements:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'packages/elements/**',
@@ -344,9 +396,6 @@ groups:
       users:
         - andrewseguin
         - gkalpak
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -354,6 +403,8 @@ groups:
   # =========================================================
   fw-forms:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'packages/forms/**',
@@ -377,9 +428,6 @@ groups:
     reviewers:
       users:
         - AndrewKushnir
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -387,6 +435,8 @@ groups:
   # =========================================================
   fw-i18n:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'packages/core/src/i18n/**',
@@ -411,9 +461,6 @@ groups:
         - AndrewKushnir
         - mhevery
         - petebacondarwin
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -421,6 +468,8 @@ groups:
   # =========================================================
   fw-platform-server:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'packages/platform-server/**',
@@ -431,9 +480,6 @@ groups:
       users:
         - alxhub
         - kyliau
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -441,27 +487,30 @@ groups:
   # =========================================================
   fw-router:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'packages/router/**',
           'packages/examples/router/**',
           'aio/content/guide/router.md',
+          'aio/content/guide/router-tutorial.md',
+          'aio/content/examples/router-tutorial/**',
           'aio/content/examples/router/**',
           'aio/content/images/guide/router/**'
           ])
     reviewers:
       users:
         - atscott
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
   #  Framework: Service Worker
   # =========================================================
-  fw-server-worker:
+  fw-service-worker:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'packages/service-worker/**',
@@ -480,9 +529,6 @@ groups:
         - alxhub
         - gkalpak
         - IgorMinar
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -490,6 +536,8 @@ groups:
   # =========================================================
   fw-upgrade:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'packages/upgrade/**',
@@ -511,9 +559,6 @@ groups:
       users:
         - gkalpak
         - petebacondarwin
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -521,8 +566,10 @@ groups:
   # =========================================================
   fw-testing:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
-        contains_any_globs(files, [
+        contains_any_globs(files.exclude('packages/compiler-cli/**'), [
           '**/testing/**',
           'aio/content/guide/testing.md',
           'aio/content/examples/testing/**',
@@ -530,12 +577,10 @@ groups:
           ])
     reviewers:
       users:
+        - AndrewKushnir
         - IgorMinar
         - kara
         - pkozlowski-opensource
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -543,9 +588,9 @@ groups:
   # =========================================================
   fw-benchmarks:
     conditions:
+      - *can-be-global-approved
       - >
         contains_any_globs(files, [
-          'modules/benchmarks_external/**',
           'modules/benchmarks/**'
           ])
     reviewers:
@@ -553,8 +598,6 @@ groups:
         - IgorMinar
         - kara
         - pkozlowski-opensource
-      teams:
-        - ~framework-global-approvers
 
 
   # =========================================================
@@ -562,6 +605,7 @@ groups:
   # =========================================================
   fw-playground:
     conditions:
+      - *can-be-global-approved
       - >
         contains_any_globs(files, [
           'modules/playground/**'
@@ -570,8 +614,6 @@ groups:
       users:
         - IgorMinar
         - kara
-      teams:
-        - ~framework-global-approvers
 
 
   # =========================================================
@@ -579,6 +621,8 @@ groups:
   # =========================================================
   fw-security:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'packages/core/src/sanitization/**',
@@ -593,15 +637,14 @@ groups:
       users:
         - IgorMinar
         - mhevery
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
   # =========================================================
   #  Bazel
   # =========================================================
   bazel:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'packages/bazel/**',
@@ -612,9 +655,6 @@ groups:
         - IgorMinar
         - josephperrott
         - kyliau
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -622,6 +662,8 @@ groups:
   # =========================================================
   language-service:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'packages/language-service/**',
@@ -630,10 +672,8 @@ groups:
           ])
     reviewers:
       users:
+        - ayazhafiz
         - kyliau
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -641,17 +681,17 @@ groups:
   # =========================================================
   zone-js:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
-          'packages/zone.js/**'
+          'packages/zone.js/**',
+          'aio/content/guide/zone.md'
           ])
     reviewers:
       users:
         - JiaLiPassion
         - mhevery
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -659,6 +699,8 @@ groups:
   # =========================================================
   benchpress:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'packages/benchpress/**'
@@ -666,9 +708,6 @@ groups:
     reviewers:
       users:
         - alxhub
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -676,6 +715,7 @@ groups:
   # =========================================================
   integration-tests:
     conditions:
+      - *can-be-global-approved
       - >
         contains_any_globs(files, [
           'integration/**'
@@ -686,8 +726,6 @@ groups:
         - josephperrott
         - kara
         - mhevery
-      teams:
-        - ~framework-global-approvers
 
 
   # =========================================================
@@ -695,6 +733,8 @@ groups:
   # =========================================================
   docs-getting-started-and-tutorial:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'aio/content/guide/setup-local.md',
@@ -718,9 +758,6 @@ groups:
         - aikidave
         - IgorMinar
         - StephenFluin
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -728,6 +765,8 @@ groups:
   # =========================================================
   docs-marketing:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'aio/content/marketing/**',
@@ -739,18 +778,17 @@ groups:
           ])
     reviewers:
       users:
+        - aikidave
         - IgorMinar
         - StephenFluin
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
-
 
   # =========================================================
   #  Docs: Observables
   # =========================================================
   docs-observables:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'aio/content/guide/observables.md',
@@ -767,9 +805,6 @@ groups:
     reviewers:
       users:
         - alxhub
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -777,6 +812,8 @@ groups:
   # =========================================================
   docs-packaging-and-releasing:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'docs/PUBLIC_API.md',
@@ -801,9 +838,6 @@ groups:
       users:
         - IgorMinar
         - kara
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -811,6 +845,8 @@ groups:
   # =========================================================
   docs-cli:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'aio/content/cli/**',
@@ -824,7 +860,7 @@ groups:
           'aio/content/images/guide/deployment/**',
           'aio/content/guide/file-structure.md',
           'aio/content/guide/ivy.md',
-          'aio/content/guide/web-worker.md'
+          'aio/content/guide/web-worker.md',
           'aio/content/guide/workspace-config.md',
           ])
     reviewers:
@@ -832,9 +868,6 @@ groups:
         - clydin
         - IgorMinar
         - mgechev
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -842,6 +875,8 @@ groups:
   # =========================================================
   docs-libraries:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'aio/content/guide/creating-libraries.md',
@@ -853,9 +888,6 @@ groups:
         - alan-agius4
         - IgorMinar
         - mgechev
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -863,6 +895,8 @@ groups:
   # =========================================================
   docs-schematics:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'aio/content/guide/schematics.md',
@@ -876,9 +910,6 @@ groups:
         - alan-agius4
         - IgorMinar
         - mgechev
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -886,6 +917,8 @@ groups:
   # =========================================================
   docs-infra:
     conditions:
+      - *can-be-global-approved
+      - *can-be-global-docs-approved
       - >
         contains_any_globs(files, [
           'aio/*',
@@ -899,17 +932,13 @@ groups:
           'aio/content/guide/docs-style-guide.md',
           'aio/content/examples/docs-style-guide/**',
           'aio/content/images/guide/docs-style-guide/**',
-          'aio/content/guide/visual-studio-2015.md',
-          'aio/content/examples/visual-studio-2015/**'
+          'aio/content/guide/visual-studio-2015.md'
           ])
     reviewers:
       users:
         - gkalpak
         - IgorMinar
         - petebacondarwin
-      teams:
-        - ~framework-global-approvers
-        - ~framework-global-approvers-for-docs-only-changes
 
 
   # =========================================================
@@ -917,14 +946,17 @@ groups:
   # =========================================================
   dev-infra:
     conditions:
+      - *can-be-global-approved
       - >
-        contains_any_globs(files, [
+        contains_any_globs(files.exclude("CHANGELOG.md"), [
           '*',
           '.circleci/**',
           '.devcontainer/**',
           '.github/**',
+          '.ng-dev/**',
           '.vscode/**',
           '.yarn/**',
+          'dev-infra/**',
           'docs/BAZEL.md',
           'docs/CARETAKER.md',
           'docs/COMMITTER.md',
@@ -936,6 +968,7 @@ groups:
           'docs/SAVED_REPLIES.md',
           'docs/TOOLS.md',
           'docs/TRIAGE_AND_LABELS.md',
+          'goldens/*',
           'modules/e2e_util/e2e_util.ts',
           'modules/e2e_util/perf_util.ts',
           'modules/*',
@@ -949,13 +982,13 @@ groups:
           'tools/browsers/**',
           'tools/build/**',
           'tools/circular_dependency_test/**',
+          'tools/contributing-stats/**',
+          'tools/components/**',
           'tools/gulp-tasks/**',
           'tools/ng_rollup_bundle/**',
           'tools/ngcontainer/**',
           'tools/npm/**',
-          'tools/public_api_guard/BUILD.bazel',
-          'tools/public_api_guard/public_api_guard.bzl',
-          'tools/pullapprove/**',
+          'tools/npm_integration_test/**',
           'tools/rxjs/**',
           'tools/saucelabs/**',
           'tools/size-tracking/**',
@@ -965,7 +998,6 @@ groups:
           'tools/ts-api-guardian/**',
           'tools/tslint/**',
           'tools/utils/**',
-          'tools/validate-commit-message/**',
           'tools/yarn/**',
           'tools/*',
           '**/*.bzl',
@@ -978,8 +1010,6 @@ groups:
         - gkalpak
         - IgorMinar
         - josephperrott
-      teams:
-        - ~framework-global-approvers
 
 
   # =========================================================
@@ -987,9 +1017,11 @@ groups:
   # =========================================================
   public-api:
     conditions:
+      - *can-be-global-approved
       - >
         contains_any_globs(files, [
-          'tools/public_api_guard/**',
+          'goldens/public-api/**',
+          'CHANGELOG.md',
           'docs/NAMING.md',
           'aio/content/guide/glossary.md',
           'aio/content/guide/styleguide.md',
@@ -999,8 +1031,7 @@ groups:
     reviewers:
       users:
         - IgorMinar
-      teams:
-        - ~framework-global-approvers
+        - kara
 
 
   # ================================================
@@ -1008,17 +1039,32 @@ groups:
   # ================================================
   size-tracking:
     conditions:
+      - *can-be-global-approved
       - >
         contains_any_globs(files, [
-          'aio/scripts/_payload-limits.json',
-          'integration/_payload-limits.json'
+          'goldens/size-tracking/**'
           ])
     reviewers:
       users:
         - IgorMinar
         - kara
-      teams:
-        - ~framework-global-approvers
+
+
+  # ================================================
+  #  Circular dependencies
+  # ================================================
+  circular-dependencies:
+    conditions:
+      - *can-be-global-approved
+      - >
+        contains_any_globs(files, [
+          'goldens/circular-deps/packages.json'
+        ])
+    reviewers:
+      users:
+        - IgorMinar
+        - josephperrott
+        - kara
 
 
 ####################################################################################
@@ -1030,6 +1076,7 @@ groups:
   # =========================================================
   code-ownership:
     conditions:
+      - *can-be-global-approved
       - >
         contains_any_globs(files, [
           '.pullapprove.yml'
@@ -1037,8 +1084,6 @@ groups:
     reviewers:
       users:
         - IgorMinar
-      teams:
-        - ~framework-global-approvers
 
 
   # ====================================================
@@ -1046,6 +1091,7 @@ groups:
   # ====================================================
   fallback:
     conditions:
+      - *can-be-global-approved
       # Groups which are found to have matching conditions are `active`
       # according to PullApprove. If no groups are matched and considered
       # active, we still want to have a review occur.
@@ -1053,5 +1099,3 @@ groups:
     reviewers:
       users:
         - IgorMinar
-      teams:
-        - ~framework-global-approvers

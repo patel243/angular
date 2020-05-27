@@ -1,8 +1,5 @@
 [
   {
-    "name": "ACTIVE_INDEX"
-  },
-  {
     "name": "BLOOM_MASK"
   },
   {
@@ -70,6 +67,9 @@
   },
   {
     "name": "FLAGS"
+  },
+  {
+    "name": "HAS_TRANSPLANTED_VIEWS"
   },
   {
     "name": "HEADER_OFFSET"
@@ -205,6 +205,9 @@
   },
   {
     "name": "TNODE"
+  },
+  {
+    "name": "TRANSPLANTED_VIEWS_TO_REFRESH"
   },
   {
     "name": "TVIEW"
@@ -588,10 +591,10 @@
     "name": "getContextLView"
   },
   {
-    "name": "getCurrentDirectiveIndex"
+    "name": "getCurrentDirectiveDef"
   },
   {
-    "name": "getCurrentStyleSanitizer"
+    "name": "getCurrentDirectiveIndex"
   },
   {
     "name": "getDebugContext"
@@ -612,10 +615,10 @@
     "name": "getFactoryDef"
   },
   {
-    "name": "getFirstNativeNode"
+    "name": "getFirstLContainer"
   },
   {
-    "name": "getHostDirectiveDef"
+    "name": "getFirstNativeNode"
   },
   {
     "name": "getInjectableDef"
@@ -652,6 +655,12 @@
   },
   {
     "name": "getNativeByTNode"
+  },
+  {
+    "name": "getNearestLContainer"
+  },
+  {
+    "name": "getNextLContainer"
   },
   {
     "name": "getNodeInjectable"
@@ -706,6 +715,9 @@
   },
   {
     "name": "getSelectedIndex"
+  },
+  {
+    "name": "getSelectedTNode"
   },
   {
     "name": "getSymbolIterator"
@@ -858,6 +870,9 @@
     "name": "isInHostBindings"
   },
   {
+    "name": "isInlineTemplate"
+  },
+  {
     "name": "isJsObject"
   },
   {
@@ -954,6 +969,9 @@
     "name": "markDuplicates"
   },
   {
+    "name": "markTransplantedViewsForRefresh"
+  },
+  {
     "name": "markViewDirty"
   },
   {
@@ -999,7 +1017,7 @@
     "name": "noSideEffects"
   },
   {
-    "name": "normalizeAndApplySuffixOrSanitizer"
+    "name": "normalizeSuffix"
   },
   {
     "name": "readPatchedData"
@@ -1014,13 +1032,13 @@
     "name": "refreshComponent"
   },
   {
+    "name": "refreshContainsDirtyView"
+  },
+  {
     "name": "refreshContentQueries"
   },
   {
-    "name": "refreshDynamicEmbeddedViews"
-  },
-  {
-    "name": "refreshTransplantedViews"
+    "name": "refreshEmbeddedViews"
   },
   {
     "name": "refreshView"
@@ -1095,6 +1113,9 @@
     "name": "setCheckNoChangesMode"
   },
   {
+    "name": "setCurrentDirectiveIndex"
+  },
+  {
     "name": "setCurrentQueryIndex"
   },
   {
@@ -1117,9 +1138,6 @@
   },
   {
     "name": "setIsNotParent"
-  },
-  {
-    "name": "setLContainerActiveIndex"
   },
   {
     "name": "setPreviousOrParentTNode"
@@ -1192,6 +1210,9 @@
   },
   {
     "name": "updateStyling"
+  },
+  {
+    "name": "updateTransplantedViewCount"
   },
   {
     "name": "viewAttachedToChangeDetector"

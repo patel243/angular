@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
@@ -15,7 +15,11 @@ const CHROME_OPTIONS = {
 };
 
 exports.config = {
-  onPrepare: function() { beforeEach(function() { browser.ignoreSynchronization = false; }); },
+  onPrepare: function() {
+    beforeEach(function() {
+      browser.ignoreSynchronization = false;
+    });
+  },
   restartBrowserBetweenTests: true,
   allScriptsTimeout: 11000,
   capabilities: {
@@ -31,7 +35,9 @@ exports.config = {
   jasmineNodeOpts: {
     showColors: true,
     defaultTimeoutInterval: 90000,
-    print: function(msg) { console.log(msg); },
+    print: function(msg) {
+      console.log(msg);
+    },
   },
   useAllAngular2AppRoots: true
 };

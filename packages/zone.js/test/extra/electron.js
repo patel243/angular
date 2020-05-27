@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
@@ -10,9 +10,21 @@ var mockRequire = require('mock-require');
 var nativeTimeout = setTimeout;
 require('./zone-mix');
 mockRequire('electron', {
-  desktopCapturer: {getSources: function(callback) { nativeTimeout(callback); }},
-  shell: {openExternal: function(callback) { nativeTimeout(callback); }},
-  ipcRenderer: {on: function(callback) { nativeTimeout(callback); }},
+  desktopCapturer: {
+    getSources: function(callback) {
+      nativeTimeout(callback);
+    }
+  },
+  shell: {
+    openExternal: function(callback) {
+      nativeTimeout(callback);
+    }
+  },
+  ipcRenderer: {
+    on: function(callback) {
+      nativeTimeout(callback);
+    }
+  },
 });
 require('./zone-patch-electron');
 var electron = require('electron');

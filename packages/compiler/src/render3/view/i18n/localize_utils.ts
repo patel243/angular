@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
@@ -28,7 +28,9 @@ class MessagePiece {
 }
 class LiteralPiece extends MessagePiece {}
 class PlaceholderPiece extends MessagePiece {
-  constructor(name: string) { super(formatI18nPlaceholderName(name, /* useCamelCase */ false)); }
+  constructor(name: string) {
+    super(formatI18nPlaceholderName(name, /* useCamelCase */ false));
+  }
 }
 
 /**

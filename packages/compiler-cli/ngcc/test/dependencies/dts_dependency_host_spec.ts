@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
@@ -14,7 +14,6 @@ import {createDependencyInfo} from '../../src/dependencies/dependency_host';
 import {DtsDependencyHost} from '../../src/dependencies/dts_dependency_host';
 
 runInEachFileSystem(() => {
-
   describe('DtsDependencyHost', () => {
     let _: typeof absoluteFrom;
     let host: DtsDependencyHost;

@@ -72,7 +72,7 @@ Files at the top level of `src/` support testing and running your application. S
 | `environments/`        | Contains build configuration options for particular target environments. By default there is an unnamed standard development environment and a production ("prod") environment. You can define additional target environment configurations. |
 | `favicon.ico`          | An icon to use for this application in the bookmark bar. |
 | `index.html`           | The main HTML page that is served when someone visits your site. The CLI automatically adds all JavaScript and CSS files when building your app, so you typically don't need to add any `<script>` or` <link>` tags here manually. |
-| `main.ts`              | The main entry point for your application. Compiles the application with the [JIT compiler](https://angular.io/guide/glossary#jit) and bootstraps the application's root module (AppModule) to run in the browser. You can also use the [AOT compiler](https://angular.io/guide/aot-compiler) without changing any code by appending the `--aot` flag to the CLI `build` and `serve` commands. |
+| `main.ts`              | The main entry point for your application. Compiles the application with the [JIT compiler](guide/glossary#jit) and bootstraps the application's root module (AppModule) to run in the browser. You can also use the [AOT compiler](guide/aot-compiler) without changing any code by appending the `--aot` flag to the CLI `build` and `serve` commands. |
 | `polyfills.ts`         | Provides polyfill scripts for browser support. |
 | `styles.sass`          | Lists CSS files that supply styles for a project. The extension reflects the style preprocessor you have configured for the project. |
 | `test.ts`              | The main entry point for your unit tests, with some Angular-specific configuration. You don't typically need to edit this file. |
@@ -99,7 +99,7 @@ Project-specific [TypeScript](https://www.typescriptlang.org/) configuration fil
 
 | APPLICATION-SPECIFIC CONFIG FILES    | PURPOSE |
 | :--------------------- | :------------------------------------------|
-| `browserslist`         | Configures sharing of target browsers and Node.js versions among various front-end tools. See [Browserslist on GitHub](https://github.com/browserslist/browserslist) for more information.  |
+| `.browserslistrc`       | Configures sharing of target browsers and Node.js versions among various front-end tools. See [Browserslist on GitHub](https://github.com/browserslist/browserslist) for more information.  |
 | `karma.conf.js`      | Application-specific [Karma](https://karma-runner.github.io/2.0/config/configuration-file.html) configuration. |
 | `tsconfig.app.json`    | Application-specific [TypeScript](https://www.typescriptlang.org/) configuration, including TypeScript and Angular template compiler options. See [TypeScript Configuration](guide/typescript-configuration) and [Angular Compiler Options](guide/angular-compiler-options). |
 | `tsconfig.spec.json`   | [TypeScript](https://www.typescriptlang.org/) configuration for the application tests. See [TypeScript Configuration](guide/typescript-configuration). |
@@ -165,7 +165,7 @@ my-workspace/
 
 ## Library project files
 
-When you generate a library using the CLI (with a command such as `ng generate library my-lib`), the generated files go into the projects/ folder of the workspace. For more information about creating your own libraries, see  [Creating Libraries](https://angular.io/guide/creating-libraries).
+When you generate a library using the CLI (with a command such as `ng generate library my-lib`), the generated files go into the projects/ folder of the workspace. For more information about creating your own libraries, see  [Creating Libraries](guide/creating-libraries).
 
 Libraries (unlike applications and their associated e2e projects) have their own `package.json` configuration files.
 

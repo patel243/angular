@@ -1,13 +1,13 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
 import * as ts from 'typescript';
 import {AbsoluteFsPath, FileSystem, NgtscCompilerHost} from '../../../src/ngtsc/file_system';
-import {PathMappings} from '../utils';
+import {PathMappings} from '../path_mappings';
 import {BundleProgram, makeBundleProgram} from './bundle_program';
 import {EntryPoint, EntryPointFormat} from './entry_point';
 import {NgccSourcesCompilerHost} from './ngcc_compiler_host';
@@ -48,10 +48,8 @@ export function makeEntryPointBundle(
     enableI18nLegacyMessageIdFormat: boolean = true): EntryPointBundle {
   // Create the TS program and necessary helpers.
   const rootDir = entryPoint.package;
-  const options: ts.CompilerOptions = {
-    allowJs: true,
-    maxNodeModuleJsDepth: Infinity, rootDir, ...pathMappings
-  };
+  const options: ts
+      .CompilerOptions = {allowJs: true, maxNodeModuleJsDepth: Infinity, rootDir, ...pathMappings};
   const srcHost = new NgccSourcesCompilerHost(fs, options, entryPoint.path);
   const dtsHost = new NgtscCompilerHost(fs, options);
 
@@ -72,7 +70,12 @@ export function makeEntryPointBundle(
   return {
     entryPoint,
     format,
-    rootDirs: [rootDir], isCore, isFlatCore, src, dts, enableI18nLegacyMessageIdFormat
+    rootDirs: [rootDir],
+    isCore,
+    isFlatCore,
+    src,
+    dts,
+    enableI18nLegacyMessageIdFormat
   };
 }
 

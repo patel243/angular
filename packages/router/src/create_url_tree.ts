@@ -1,13 +1,13 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
 
 import {ActivatedRoute} from './router_state';
-import {PRIMARY_OUTLET, Params} from './shared';
+import {Params, PRIMARY_OUTLET} from './shared';
 import {UrlSegment, UrlSegmentGroup, UrlTree} from './url_tree';
 import {forEach, last, shallowEqual} from './utils/collection';
 
@@ -164,7 +164,7 @@ function createPositionApplyingDoubleDots(
   let dd = numberOfDoubleDots;
   while (dd > ci) {
     dd -= ci;
-    g = g.parent !;
+    g = g.parent!;
     if (!g) {
       throw new Error('Invalid number of \'../\'');
     }

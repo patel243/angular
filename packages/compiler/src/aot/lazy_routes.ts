@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
@@ -34,7 +34,7 @@ export function listLazyRoutes(
   return allLazyRoutes;
 }
 
-function _collectLoadChildren(routes: string | Route | Route[], target: string[] = []): string[] {
+function _collectLoadChildren(routes: string|Route|Route[], target: string[] = []): string[] {
   if (typeof routes === 'string') {
     target.push(routes);
   } else if (Array.isArray(routes)) {

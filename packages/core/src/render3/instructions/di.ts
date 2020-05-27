@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
@@ -37,10 +37,10 @@ import {getLView, getPreviousOrParentTNode} from '../state';
  *
  * @codeGenApi
  */
-export function ɵɵdirectiveInject<T>(token: Type<T>| InjectionToken<T>): T;
-export function ɵɵdirectiveInject<T>(token: Type<T>| InjectionToken<T>, flags: InjectFlags): T;
+export function ɵɵdirectiveInject<T>(token: Type<T>|InjectionToken<T>): T;
+export function ɵɵdirectiveInject<T>(token: Type<T>|InjectionToken<T>, flags: InjectFlags): T;
 export function ɵɵdirectiveInject<T>(
-    token: Type<T>| InjectionToken<T>, flags = InjectFlags.Default): T|null {
+    token: Type<T>|InjectionToken<T>, flags = InjectFlags.Default): T|null {
   const lView = getLView();
   // Fall back to inject() if view hasn't been created. This situation can happen in tests
   // if inject utilities are used before bootstrapping.

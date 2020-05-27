@@ -63,7 +63,7 @@ Please note that these constants are not meant to be used by 3rd party library o
 
 * Foreign functions or foreign constants in decorator metadata aren't statically resolvable (previously, you could import a constant or function from another compilation unit, like a library, and use that constant/function in your `@NgModule` definition).
 
-* Forward references to directive inputs accessed through local refs are no longer supported by default.
+* Forward references to directive inputs accessed through local refs are no longer supported by default. [details](guide/ivy-compatibility-examples#forward-refs-directive-inputs)
 
 * If there is both an unbound class attribute and a `[class]` binding, the classes in the unbound attribute will also be added (previously, the class binding would overwrite classes in the unbound attribute).
 
@@ -74,6 +74,10 @@ Please note that these constants are not meant to be used by 3rd party library o
 * Special injection tokens (such as `TemplateRef` or `ViewContainerRef`) return a new instance whenever they are requested (previously, instances of special tokens were shared if requested on the same node). This primarily affects tests that do identity comparison of these objects.
 
 * ICU parsing happens at runtime, so only text, HTML tags and text bindings are allowed inside ICU cases (previously, directives were also permitted inside ICUs).
+
+* Adding text bindings into i18n translations that are not present in the source template itself will throw a runtime error (previously, including extra bindings in translations was permitted).
+
+* Extra HTML tags in i18n translations that are not present in the source template itself will be rendered as plain text (previously, these tags would render as HTML).
 
 * Providers formatted as `{provide: X}` without a `useValue`, `useFactory`, `useExisting`, or `useClass` property are treated like `{provide: X, useClass: X}` (previously, it defaulted to `{provide: X, useValue: undefined}`).
 

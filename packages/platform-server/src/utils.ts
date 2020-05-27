@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
@@ -77,8 +77,9 @@ the server-rendered app can be properly bootstrapped into a client app.`);
 
           return Promise
               .all(asyncPromises.map(asyncPromise => {
-                return asyncPromise.catch(
-                    e => { console.warn('Ignoring BEFORE_APP_SERIALIZED Exception: ', e); });
+                return asyncPromise.catch(e => {
+                  console.warn('Ignoring BEFORE_APP_SERIALIZED Exception: ', e);
+                });
               }))
               .then(complete);
         });

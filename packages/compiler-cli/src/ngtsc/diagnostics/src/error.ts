@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
@@ -33,7 +33,8 @@ export function makeDiagnostic(code: ErrorCode, node: ts.Node, messageText: stri
     code: Number('-99' + code.valueOf()),
     file: ts.getOriginalNode(node).getSourceFile(),
     start: node.getStart(undefined, false),
-    length: node.getWidth(), messageText,
+    length: node.getWidth(),
+    messageText,
   };
   if (relatedInfo !== undefined) {
     diag.relatedInformation = relatedInfo.map(info => {

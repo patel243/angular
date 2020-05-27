@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
@@ -90,12 +90,12 @@ export interface OnInit {
  */
 export interface DoCheck {
   /**
-     * A callback method that performs change-detection, invoked
-     * after the default change-detector runs.
-     * See `KeyValueDiffers` and `IterableDiffers` for implementing
-     * custom change checking for collections.
-     *
-     */
+   * A callback method that performs change-detection, invoked
+   * after the default change-detector runs.
+   * See `KeyValueDiffers` and `IterableDiffers` for implementing
+   * custom change checking for collections.
+   *
+   */
   ngDoCheck(): void;
 }
 
@@ -116,7 +116,7 @@ export interface DoCheck {
 export interface OnDestroy {
   /**
    * A callback method that performs custom clean-up, invoked immediately
-   * after a directive, pipe, or service instance is destroyed.
+   * before a directive, pipe, or service instance is destroyed.
    */
   ngOnDestroy(): void;
 }

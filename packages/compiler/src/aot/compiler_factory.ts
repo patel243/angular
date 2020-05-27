@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
@@ -36,9 +36,9 @@ import {StaticSymbol, StaticSymbolCache} from './static_symbol';
 import {StaticSymbolResolver} from './static_symbol_resolver';
 import {AotSummaryResolver} from './summary_resolver';
 
-export function createAotUrlResolver(host: {
-  resourceNameToFileName(resourceName: string, containingFileName: string): string | null;
-}): UrlResolver {
+export function createAotUrlResolver(
+    host: {resourceNameToFileName(resourceName: string, containingFileName: string): string|null;}):
+    UrlResolver {
   return {
     resolve: (basePath: string, url: string) => {
       const filePath = host.resourceNameToFileName(url, basePath);

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Google Inc. All Rights Reserved.
+ * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
@@ -26,12 +26,11 @@ const CreateAndDestroyWorker = {
 };
 
 describe('largeform benchmark spec', () => {
-
   afterEach(verifyNoBrowserErrors);
 
   [CreateAndDestroyWorker].forEach((worker) => {
     describe(worker.id, () => {
-      it('should run for ng2', async() => {
+      it('should run for ng2', async () => {
         await runLargeFormBenchmark({url: '/', id: `largeform.ng2.${worker.id}`, worker: worker});
       });
     });

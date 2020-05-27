@@ -45,6 +45,7 @@ ng_module(
         "@npm//@angular/platform-browser",
         "@npm//@angular/router",
         "@npm//@types",
+        "@npm//tslib",
         "@npm//rxjs",
     ],
 )
@@ -106,7 +107,7 @@ history_server(
         "--port",
         "4200",
     ],
-    templated_args = ["src/prodapp"],
+    templated_args = ["$(rlocation project/src/prodapp)"],
 )
 
 filegroup(
@@ -146,6 +147,7 @@ ts_library(
         "@npm//@angular/core",
         "@npm//@angular/router",
         "@npm//@types",
+        "@npm//tslib",
     ],
 )
 

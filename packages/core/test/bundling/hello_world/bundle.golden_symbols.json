@@ -1,8 +1,5 @@
 [
   {
-    "name": "ACTIVE_INDEX"
-  },
-  {
     "name": "BLOOM_MASK"
   },
   {
@@ -40,6 +37,9 @@
   },
   {
     "name": "FLAGS"
+  },
+  {
+    "name": "HAS_TRANSPLANTED_VIEWS"
   },
   {
     "name": "HEADER_OFFSET"
@@ -106,6 +106,9 @@
   },
   {
     "name": "SANITIZER"
+  },
+  {
+    "name": "TRANSPLANTED_VIEWS_TO_REFRESH"
   },
   {
     "name": "TVIEW"
@@ -264,6 +267,9 @@
     "name": "getFactoryDef"
   },
   {
+    "name": "getFirstLContainer"
+  },
+  {
     "name": "getFirstNativeNode"
   },
   {
@@ -286,6 +292,12 @@
   },
   {
     "name": "getNativeByTNode"
+  },
+  {
+    "name": "getNearestLContainer"
+  },
+  {
+    "name": "getNextLContainer"
   },
   {
     "name": "getNodeInjectable"
@@ -390,6 +402,9 @@
     "name": "markAsComponentHost"
   },
   {
+    "name": "markTransplantedViewsForRefresh"
+  },
+  {
     "name": "nativeAppendChild"
   },
   {
@@ -414,13 +429,13 @@
     "name": "refreshComponent"
   },
   {
+    "name": "refreshContainsDirtyView"
+  },
+  {
     "name": "refreshContentQueries"
   },
   {
-    "name": "refreshDynamicEmbeddedViews"
-  },
-  {
-    "name": "refreshTransplantedViews"
+    "name": "refreshEmbeddedViews"
   },
   {
     "name": "refreshView"
@@ -456,6 +471,9 @@
     "name": "setBindingRootForHostBindings"
   },
   {
+    "name": "setCurrentDirectiveIndex"
+  },
+  {
     "name": "setCurrentQueryIndex"
   },
   {
@@ -484,6 +502,9 @@
   },
   {
     "name": "unwrapRNode"
+  },
+  {
+    "name": "updateTransplantedViewCount"
   },
   {
     "name": "viewAttachedToChangeDetector"
