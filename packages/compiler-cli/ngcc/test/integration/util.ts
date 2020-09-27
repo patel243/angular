@@ -20,8 +20,8 @@ export type PackageSources = {
 /**
  * Instead of writing packaged code by hand, and manually describing the layout of the package, this
  * function transpiles the TypeScript sources into a flat file structure using the ES5 format. In
- * this package layout, all compiled sources are at the root of the package, with .d.ts files next
- * to the .js files. Each .js also has a corresponding .metadata.js file alongside with it.
+ * this package layout, all compiled sources are at the root of the package, with `.d.ts` files next
+ * to the `.js` files. Each `.js` also has a corresponding `.metadata.json` file alongside with it.
  *
  * All generated code is written into the `node_modules` in the top-level filesystem, ready for use
  * in testing ngcc.
@@ -41,7 +41,7 @@ export function compileIntoFlatEs5Package(pkgName: string, sources: PackageSourc
  * Instead of writing packaged code by hand, and manually describing the layout of the package,
  * this function transpiles the TypeScript sources into a flat file structure using the ES2015
  * format. In this package layout, all compiled sources are at the root of the package, with
- * `.d.ts` files next to the `.js` files. Each `.js` also has a corresponding `.metadata.js`
+ * `.d.ts` files next to the `.js` files. Each `.js` also has a corresponding `.metadata.json`
  * file alongside with it.
  *
  * All generated code is written into the `node_modules` in the top-level filesystem, ready for use
@@ -78,8 +78,8 @@ export interface FlatLayoutOptions {
 /**
  * Instead of writing packaged code by hand, and manually describing the layout of the package, this
  * function transpiles the TypeScript sources into a flat file structure using a single format. In
- * this package layout, all compiled sources are at the root of the package, with .d.ts files next
- * to the .js files. Each .js also has a corresponding .metadata.js file alongside with it.
+ * this package layout, all compiled sources are at the root of the package, with `.d.ts` files next
+ * to the `.js` files. Each `.js` also has a corresponding `.metadata.json` file alongside with it.
  *
  * All generated code is written into the `node_modules` in the top-level filesystem, ready for use
  * in testing ngcc.
@@ -99,7 +99,14 @@ function compileIntoFlatPackage(
     program.emit();
   };
 
-  emit({declaration: true, module: options.module, target: options.target, lib: []});
+  emit({
+    declaration: true,
+    emitDecoratorMetadata: true,
+    moduleResolution: ts.ModuleResolutionKind.NodeJs,
+    module: options.module,
+    target: options.target,
+    lib: [],
+  });
 
   // Copy over the JS and .d.ts files, and add a .metadata.json for each .d.ts file.
   for (const file of rootNames) {
@@ -152,7 +159,9 @@ export function compileIntoApf(
   compileFs.ensureDir(compileFs.resolve('esm2015'));
   emit({
     declaration: true,
+    emitDecoratorMetadata: true,
     outDir: './esm2015',
+    moduleResolution: ts.ModuleResolutionKind.NodeJs,
     module: ts.ModuleKind.ESNext,
     target: ts.ScriptTarget.ES2015,
     lib: [],
@@ -178,7 +187,9 @@ export function compileIntoApf(
   compileFs.ensureDir(compileFs.resolve('esm5'));
   emit({
     declaration: false,
+    emitDecoratorMetadata: true,
     outDir: './esm5',
+    moduleResolution: ts.ModuleResolutionKind.NodeJs,
     module: ts.ModuleKind.ESNext,
     target: ts.ScriptTarget.ES5,
     lib: [],
@@ -213,13 +224,15 @@ export function compileIntoApf(
       fs.resolve(`/node_modules/${pkgName}/package.json`), JSON.stringify(pkgJson, null, 2));
 }
 
+const stdFiles = loadStandardTestFiles({fakeCore: false});
+
 /**
  * Prepares a mock filesystem that contains all provided source files, which can be used to emit
  * compiled code into.
  */
 function setupCompileFs(sources: PackageSources): {rootNames: string[], compileFs: FileSystem} {
   const compileFs = new MockFileSystemPosix(true);
-  compileFs.init(loadStandardTestFiles({fakeCore: false}));
+  compileFs.init(stdFiles);
 
   const rootNames = Object.keys(sources);
 

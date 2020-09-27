@@ -11,14 +11,14 @@ import * as ts from 'typescript';
 
 import {ErrorCode, FatalDiagnosticError} from '../../diagnostics';
 import {DefaultImportRecorder, Reference} from '../../imports';
-import {InjectableClassRegistry, MetadataReader, MetadataRegistry} from '../../metadata';
-import {extractDirectiveGuards} from '../../metadata/src/util';
+import {ClassPropertyMapping, DirectiveTypeCheckMeta, InjectableClassRegistry, MetadataReader, MetadataRegistry} from '../../metadata';
+import {extractDirectiveTypeCheckMeta} from '../../metadata/src/util';
 import {DynamicValue, EnumValue, PartialEvaluator} from '../../partial_evaluator';
 import {ClassDeclaration, ClassMember, ClassMemberKind, Decorator, filterToMembersWithDecorator, ReflectionHost, reflectObjectLiteral} from '../../reflection';
 import {LocalModuleScopeRegistry} from '../../scope';
 import {AnalysisOutput, CompileResult, DecoratorHandler, DetectResult, HandlerFlags, HandlerPrecedence, ResolveResult} from '../../transform';
 
-import {getDirectiveDiagnostics, getProviderDiagnostics, getUndecoratedClassWithAngularFeaturesDiagnostic} from './diagnostics';
+import {createValueHasWrongTypeError, getDirectiveDiagnostics, getProviderDiagnostics, getUndecoratedClassWithAngularFeaturesDiagnostic} from './diagnostics';
 import {compileNgFactoryDefField} from './factory';
 import {generateSetClassMetadataCall} from './metadata';
 import {createSourceSpan, findAngularDecorator, getConstructorDependencies, isAngularDecorator, readBaseClass, resolveProvidersRequiringFactory, unwrapConstructorDependencies, unwrapExpression, unwrapForwardRef, validateConstructorDependencies, wrapFunctionExpressionsInParens, wrapTypeReference} from './util';
@@ -35,10 +35,12 @@ const LIFECYCLE_HOOKS = new Set([
 
 export interface DirectiveHandlerData {
   baseClass: Reference<ClassDeclaration>|'dynamic'|null;
-  guards: ReturnType<typeof extractDirectiveGuards>;
+  typeCheckMeta: DirectiveTypeCheckMeta;
   meta: R3DirectiveMetadata;
   metadataStmt: Statement|null;
   providersRequiringFactory: Set<Reference<ClassDeclaration>>|null;
+  inputs: ClassPropertyMapping;
+  outputs: ClassPropertyMapping;
 }
 
 export class DirectiveDecoratorHandler implements
@@ -83,11 +85,10 @@ export class DirectiveDecoratorHandler implements
     const directiveResult = extractDirectiveMetadata(
         node, decorator, this.reflector, this.evaluator, this.defaultImportRecorder, this.isCore,
         flags, this.annotateForClosureCompiler);
-    const analysis = directiveResult && directiveResult.metadata;
-
-    if (analysis === undefined) {
+    if (directiveResult === undefined) {
       return {};
     }
+    const analysis = directiveResult.metadata;
 
     let providersRequiringFactory: Set<Reference<ClassDeclaration>>|null = null;
     if (directiveResult !== undefined && directiveResult.decorator.has('providers')) {
@@ -97,12 +98,14 @@ export class DirectiveDecoratorHandler implements
 
     return {
       analysis: {
+        inputs: directiveResult.inputs,
+        outputs: directiveResult.outputs,
         meta: analysis,
         metadataStmt: generateSetClassMetadataCall(
             node, this.reflector, this.defaultImportRecorder, this.isCore,
             this.annotateForClosureCompiler),
         baseClass: readBaseClass(node, this.reflector, this.evaluator),
-        guards: extractDirectiveGuards(node, this.reflector),
+        typeCheckMeta: extractDirectiveTypeCheckMeta(node, directiveResult.inputs, this.reflector),
         providersRequiringFactory
       }
     };
@@ -117,12 +120,12 @@ export class DirectiveDecoratorHandler implements
       name: node.name.text,
       selector: analysis.meta.selector,
       exportAs: analysis.meta.exportAs,
-      inputs: analysis.meta.inputs,
-      outputs: analysis.meta.outputs,
+      inputs: analysis.inputs,
+      outputs: analysis.outputs,
       queries: analysis.meta.queries.map(query => query.propertyName),
       isComponent: false,
       baseClass: analysis.baseClass,
-      ...analysis.guards,
+      ...analysis.typeCheckMeta,
     });
 
     this.injectableRegistry.registerInjectable(node);
@@ -199,8 +202,13 @@ export class DirectiveDecoratorHandler implements
 export function extractDirectiveMetadata(
     clazz: ClassDeclaration, decorator: Readonly<Decorator|null>, reflector: ReflectionHost,
     evaluator: PartialEvaluator, defaultImportRecorder: DefaultImportRecorder, isCore: boolean,
-    flags: HandlerFlags, annotateForClosureCompiler: boolean, defaultSelector: string|null = null):
-    {decorator: Map<string, ts.Expression>, metadata: R3DirectiveMetadata}|undefined {
+    flags: HandlerFlags, annotateForClosureCompiler: boolean,
+    defaultSelector: string|null = null): {
+  decorator: Map<string, ts.Expression>,
+  metadata: R3DirectiveMetadata,
+  inputs: ClassPropertyMapping,
+  outputs: ClassPropertyMapping,
+}|undefined {
   let directive: Map<string, ts.Expression>;
   if (decorator === null || decorator.args === null || decorator.args.length === 0) {
     directive = new Map<string, ts.Expression>();
@@ -278,8 +286,7 @@ export function extractDirectiveMetadata(
     const expr = directive.get('selector')!;
     const resolved = evaluator.evaluate(expr);
     if (typeof resolved !== 'string') {
-      throw new FatalDiagnosticError(
-          ErrorCode.VALUE_HAS_WRONG_TYPE, expr, `selector must be a string`);
+      throw createValueHasWrongTypeError(expr, resolved, `selector must be a string`);
     }
     // use default selector in case selector is an empty string
     selector = resolved === '' ? defaultSelector : resolved;
@@ -310,8 +317,7 @@ export function extractDirectiveMetadata(
     const expr = directive.get('exportAs')!;
     const resolved = evaluator.evaluate(expr);
     if (typeof resolved !== 'string') {
-      throw new FatalDiagnosticError(
-          ErrorCode.VALUE_HAS_WRONG_TYPE, expr, `exportAs must be a string`);
+      throw createValueHasWrongTypeError(expr, resolved, `exportAs must be a string`);
     }
     exportAs = resolved.split(',').map(part => part.trim());
   }
@@ -333,6 +339,9 @@ export function extractDirectiveMetadata(
   const type = wrapTypeReference(reflector, clazz);
   const internalType = new WrappedNodeExpr(reflector.getInternalNameOfClass(clazz));
 
+  const inputs = ClassPropertyMapping.fromMappedObject({...inputsFromMeta, ...inputsFromFields});
+  const outputs = ClassPropertyMapping.fromMappedObject({...outputsFromMeta, ...outputsFromFields});
+
   const metadata: R3DirectiveMetadata = {
     name: clazz.name.text,
     deps: ctorDeps,
@@ -340,8 +349,8 @@ export function extractDirectiveMetadata(
     lifecycle: {
       usesOnChanges,
     },
-    inputs: {...inputsFromMeta, ...inputsFromFields},
-    outputs: {...outputsFromMeta, ...outputsFromFields},
+    inputs: inputs.toJointMappedObject(),
+    outputs: outputs.toDirectMappedObject(),
     queries,
     viewQueries,
     selector,
@@ -354,7 +363,12 @@ export function extractDirectiveMetadata(
     exportAs,
     providers
   };
-  return {decorator: directive, metadata};
+  return {
+    decorator: directive,
+    metadata,
+    inputs,
+    outputs,
+  };
 }
 
 export function extractQueryMetadata(
@@ -381,8 +395,7 @@ export function extractQueryMetadata(
   } else if (isStringArrayOrDie(arg, `@${name} predicate`, node)) {
     predicate = arg;
   } else {
-    throw new FatalDiagnosticError(
-        ErrorCode.VALUE_HAS_WRONG_TYPE, node, `@${name} predicate cannot be interpreted`);
+    throw createValueHasWrongTypeError(node, arg, `@${name} predicate cannot be interpreted`);
   }
 
   // Extract the read and descendants options.
@@ -405,9 +418,8 @@ export function extractQueryMetadata(
       const descendantsExpr = options.get('descendants')!;
       const descendantsValue = evaluator.evaluate(descendantsExpr);
       if (typeof descendantsValue !== 'boolean') {
-        throw new FatalDiagnosticError(
-            ErrorCode.VALUE_HAS_WRONG_TYPE, descendantsExpr,
-            `@${name} options.descendants must be a boolean`);
+        throw createValueHasWrongTypeError(
+            descendantsExpr, descendantsValue, `@${name} options.descendants must be a boolean`);
       }
       descendants = descendantsValue;
     }
@@ -415,8 +427,8 @@ export function extractQueryMetadata(
     if (options.has('static')) {
       const staticValue = evaluator.evaluate(options.get('static')!);
       if (typeof staticValue !== 'boolean') {
-        throw new FatalDiagnosticError(
-            ErrorCode.VALUE_HAS_WRONG_TYPE, node, `@${name} options.static must be a boolean`);
+        throw createValueHasWrongTypeError(
+            node, staticValue, `@${name} options.static must be a boolean`);
       }
       isStatic = staticValue;
     }
@@ -482,9 +494,8 @@ function isStringArrayOrDie(value: any, name: string, node: ts.Expression): valu
 
   for (let i = 0; i < value.length; i++) {
     if (typeof value[i] !== 'string') {
-      throw new FatalDiagnosticError(
-          ErrorCode.VALUE_HAS_WRONG_TYPE, node,
-          `Failed to resolve ${name} at position ${i} to a string`);
+      throw createValueHasWrongTypeError(
+          node, value[i], `Failed to resolve ${name} at position ${i} to a string`);
     }
   }
   return true;
@@ -501,9 +512,8 @@ export function parseFieldArrayValue(
   const expression = directive.get(field)!;
   const value = evaluator.evaluate(expression);
   if (!isStringArrayOrDie(value, field, expression)) {
-    throw new FatalDiagnosticError(
-        ErrorCode.VALUE_HAS_WRONG_TYPE, expression,
-        `Failed to resolve @Directive.${field} to a string array`);
+    throw createValueHasWrongTypeError(
+        expression, value, `Failed to resolve @Directive.${field} to a string array`);
   }
 
   return value;
@@ -548,8 +558,8 @@ function parseDecoratedFields(
       } else if (decorator.args.length === 1) {
         const property = evaluator.evaluate(decorator.args[0]);
         if (typeof property !== 'string') {
-          throw new FatalDiagnosticError(
-              ErrorCode.VALUE_HAS_WRONG_TYPE, Decorator.nodeForError(decorator),
+          throw createValueHasWrongTypeError(
+              Decorator.nodeForError(decorator), property,
               `@${decorator.name} decorator argument must resolve to a string`);
         }
         results[fieldName] = mapValueResolver(property, fieldName);
@@ -613,8 +623,8 @@ function evaluateHostExpressionBindings(
     hostExpr: ts.Expression, evaluator: PartialEvaluator): ParsedHostBindings {
   const hostMetaMap = evaluator.evaluate(hostExpr);
   if (!(hostMetaMap instanceof Map)) {
-    throw new FatalDiagnosticError(
-        ErrorCode.VALUE_HAS_WRONG_TYPE, hostExpr, `Decorator host metadata must be an object`);
+    throw createValueHasWrongTypeError(
+        hostExpr, hostMetaMap, `Decorator host metadata must be an object`);
   }
   const hostMetadata: StringMap<string|Expression> = {};
   hostMetaMap.forEach((value, key) => {
@@ -624,8 +634,8 @@ function evaluateHostExpressionBindings(
     }
 
     if (typeof key !== 'string') {
-      throw new FatalDiagnosticError(
-          ErrorCode.VALUE_HAS_WRONG_TYPE, hostExpr,
+      throw createValueHasWrongTypeError(
+          hostExpr, key,
           `Decorator host metadata must be a string -> string object, but found unparseable key`);
     }
 
@@ -634,8 +644,8 @@ function evaluateHostExpressionBindings(
     } else if (value instanceof DynamicValue) {
       hostMetadata[key] = new WrappedNodeExpr(value.node as ts.Expression);
     } else {
-      throw new FatalDiagnosticError(
-          ErrorCode.VALUE_HAS_WRONG_TYPE, hostExpr,
+      throw createValueHasWrongTypeError(
+          hostExpr, value,
           `Decorator host metadata must be a string -> string object, but found unparseable value`);
     }
   });
@@ -678,8 +688,8 @@ export function extractHostBindings(
 
             const resolved = evaluator.evaluate(decorator.args[0]);
             if (typeof resolved !== 'string') {
-              throw new FatalDiagnosticError(
-                  ErrorCode.VALUE_HAS_WRONG_TYPE, Decorator.nodeForError(decorator),
+              throw createValueHasWrongTypeError(
+                  Decorator.nodeForError(decorator), resolved,
                   `@HostBinding's argument must be a string`);
             }
 
@@ -704,8 +714,8 @@ export function extractHostBindings(
 
             const resolved = evaluator.evaluate(decorator.args[0]);
             if (typeof resolved !== 'string') {
-              throw new FatalDiagnosticError(
-                  ErrorCode.VALUE_HAS_WRONG_TYPE, decorator.args[0],
+              throw createValueHasWrongTypeError(
+                  decorator.args[0], resolved,
                   `@HostListener's event name argument must be a string`);
             }
 
@@ -715,8 +725,8 @@ export function extractHostBindings(
               const expression = decorator.args[1];
               const resolvedArgs = evaluator.evaluate(decorator.args[1]);
               if (!isStringArrayOrDie(resolvedArgs, '@HostListener.args', expression)) {
-                throw new FatalDiagnosticError(
-                    ErrorCode.VALUE_HAS_WRONG_TYPE, decorator.args[1],
+                throw createValueHasWrongTypeError(
+                    decorator.args[1], resolvedArgs,
                     `@HostListener's second argument must be a string array`);
               }
               args = resolvedArgs;

@@ -3,7 +3,8 @@
   "version": "0.0.0-PLACEHOLDER",
   "description": "Angular - library for localizing messages",
   "bin": {
-    "localize-translate": "./src/tools/src/translate/main.js"
+    "localize-translate": "./src/tools/src/translate/main.js",
+    "localize-extract": "./src/tools/src/extract/main.js"
   },
   "author": "angular",
   "license": "MIT",
@@ -14,6 +15,9 @@
   "schematics": "./schematics/collection.json",
   "ng-update": {
     "packageGroup": "NG_UPDATE_PACKAGE_GROUP"
+  },
+  "ng-add": {
+    "save": "devDependencies"
   },
   "sideEffects": [
     "**/init/index.js",

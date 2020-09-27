@@ -1,5 +1,6 @@
 export declare abstract class AbstractControl {
-    asyncValidator: AsyncValidatorFn | null;
+    get asyncValidator(): AsyncValidatorFn | null;
+    set asyncValidator(asyncValidatorFn: AsyncValidatorFn | null);
     get dirty(): boolean;
     get disabled(): boolean;
     get enabled(): boolean;
@@ -15,10 +16,11 @@ export declare abstract class AbstractControl {
     get untouched(): boolean;
     get updateOn(): FormHooks;
     get valid(): boolean;
-    validator: ValidatorFn | null;
+    get validator(): ValidatorFn | null;
+    set validator(validatorFn: ValidatorFn | null);
     readonly value: any;
     readonly valueChanges: Observable<any>;
-    constructor(validator: ValidatorFn | null, asyncValidator: AsyncValidatorFn | null);
+    constructor(validators: ValidatorFn | ValidatorFn[] | null, asyncValidators: AsyncValidatorFn | AsyncValidatorFn[] | null);
     clearAsyncValidators(): void;
     clearValidators(): void;
     disable(opts?: {
@@ -347,7 +349,7 @@ export declare const NG_ASYNC_VALIDATORS: InjectionToken<(Function | Validator)[
 
 export declare const NG_VALIDATORS: InjectionToken<(Function | Validator)[]>;
 
-export declare const NG_VALUE_ACCESSOR: InjectionToken<ControlValueAccessor>;
+export declare const NG_VALUE_ACCESSOR: InjectionToken<readonly ControlValueAccessor[]>;
 
 export declare abstract class NgControl extends AbstractControlDirective {
     get asyncValidator(): AsyncValidatorFn | null;

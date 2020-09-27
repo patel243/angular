@@ -124,7 +124,6 @@ export {
   ɵɵclassMapInterpolateV,
   ɵɵclassProp,
   ɵɵComponentDefWithMeta,
-  ɵɵcomponentHostSyntheticListener,
   ɵɵcontentQuery,
   ɵɵCopyDefinitionFeature,
   ɵɵdefineComponent,
@@ -202,7 +201,6 @@ export {
   ɵɵresolveWindow,
   ɵɵrestoreView,
 
-  ɵɵselect,
   ɵɵsetComponentScope,
   ɵɵsetNgModuleScope,
   ɵɵstaticContentQuery,
@@ -227,6 +225,8 @@ export {
   ɵɵstylePropInterpolate7,
   ɵɵstylePropInterpolate8,
   ɵɵstylePropInterpolateV,
+  ɵɵsyntheticHostListener,
+  ɵɵsyntheticHostProperty,
   ɵɵtemplate,
   ɵɵtemplateRefExtractor,
   ɵɵtext,
@@ -240,7 +240,6 @@ export {
   ɵɵtextInterpolate7,
   ɵɵtextInterpolate8,
   ɵɵtextInterpolateV,
-  ɵɵupdateSyntheticHostBinding,
   ɵɵviewQuery,
 } from './render3/index';
 export {
@@ -292,5 +291,8 @@ export {
   ɵɵsanitizeUrl,
   ɵɵsanitizeUrlOrResourceUrl,
 } from './sanitization/sanitization';
+export {
+  noSideEffects as ɵnoSideEffects,
+} from './util/closure';
 
 // clang-format on

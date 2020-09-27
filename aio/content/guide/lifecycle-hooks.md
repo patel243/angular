@@ -62,6 +62,8 @@ Angular executes hook methods in the following sequence. You can use them to per
 
       Called before `ngOnInit()` and whenever one or more data-bound input properties change.
 
+      Note that if your component has no inputs or you use it without providing any inputs, the framework will not call `ngOnChanges()`.
+
     </td>
   </tr>
   <tr style='vertical-align:top'>
@@ -495,7 +497,7 @@ for one turn of the browser's JavaScript cycle, which triggers a new change-dete
 
 #### Write lean hook methods to avoid performance problems
 
-When you run the *AfterView* sample, notice how frequently Angular calls `AfterViewChecked()`$emdash;often when there are no changes of interest.
+When you run the *AfterView* sample, notice how frequently Angular calls `AfterViewChecked()`-often when there are no changes of interest.
 Be very careful about how much logic or computation you put into one of these methods.
 
 <div class="lightbox">
@@ -569,7 +571,7 @@ which can only be reached by querying for them via the property decorated with
 
 {@a no-unidirectional-flow-worries}
 
-<div class="alert is-helpful>
+<div class="alert is-helpful">
 
 <header>No need to wait for content updates</header>
 

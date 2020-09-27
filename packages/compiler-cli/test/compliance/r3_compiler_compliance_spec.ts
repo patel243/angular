@@ -167,9 +167,7 @@ describe('compiler compliance', () => {
       expectEmit(result.source, template, 'Incorrect template');
     });
 
-    // TODO(https://github.com/angular/angular/issues/24426): We need to support the parser actually
-    // building the proper attributes based off of xmlns attributes.
-    xit('should support namespaced attributes', () => {
+    it('should support namespaced attributes', () => {
       const files = {
         app: {
           'spec.ts': `
@@ -194,7 +192,10 @@ describe('compiler compliance', () => {
       // The template should look like this (where IDENT is a wild card for an identifier):
       const template = `
           …
-          consts: [["class", "my-app", 0, "http://someuri/foo", "foo:bar", "baz", "title", "Hello", 0, "http://someuri/foo", "foo:qux", "quacks"]],
+          consts: [[${AttributeMarker.NamespaceURI}, "xmlns", "foo", "http://someuri/foo", ${
+          AttributeMarker.NamespaceURI}, "foo", "bar", "baz", "title", "Hello", ${
+          AttributeMarker.NamespaceURI}, "foo", "qux", "quacks", ${
+          AttributeMarker.Classes}, "my-app"]],
           template: function MyComponent_Template(rf, ctx) {
             if (rf & 1) {
               $r3$.ɵɵelementStart(0, "div", 0);
@@ -434,7 +435,7 @@ describe('compiler compliance', () => {
         hostVars: 14,
         hostBindings: function MyComponent_HostBindings(rf, ctx) {
           if (rf & 2) {
-            $r3$.ɵɵupdateSyntheticHostBinding("@expansionHeight",
+            $r3$.ɵɵsyntheticHostProperty("@expansionHeight",
                 $r3$.ɵɵpureFunction2(5, $_c1$, ctx.getExpandedState(),
                   $r3$.ɵɵpureFunction2(2, $_c0$, ctx.collapsedHeight, ctx.expandedHeight)
                 )
@@ -1551,6 +1552,43 @@ describe('compiler compliance', () => {
         const result = compile(files, angularFiles);
         expectEmit(result.source, SimpleComponentDefinition, 'Incorrect MyApp definition');
       });
+
+      it('should capture the node name of ng-content with a structural directive', () => {
+        const files = {
+          app: {
+            'spec.ts': `
+              import {Component, Directive, NgModule, TemplateRef} from '@angular/core';
+
+              @Component({selector: 'simple', template: '<ng-content *ngIf="showContent"></ng-content>'})
+              export class SimpleComponent {}
+            `
+          }
+        };
+
+        const SimpleComponentDefinition = `
+          SimpleComponent.ɵcmp = $r3$.ɵɵdefineComponent({
+            type: SimpleComponent,
+            selectors: [["simple"]],
+            ngContentSelectors: $c0$,
+            decls: 1,
+            vars: 1,
+            consts: [[4, "ngIf"]],
+            template:  function SimpleComponent_Template(rf, ctx) {
+              if (rf & 1) {
+                i0.ɵɵprojectionDef();
+                i0.ɵɵtemplate(0, SimpleComponent_ng_content_0_Template, 1, 0, "ng-content", 0);
+              }
+              if (rf & 2) {
+                i0.ɵɵproperty("ngIf", ctx.showContent);
+              }
+            },
+            encapsulation: 2
+          });`;
+
+        const result = compile(files, angularFiles);
+        expectEmit(
+            result.source, SimpleComponentDefinition, 'Incorrect SimpleComponent definition');
+      });
     });
 
     describe('queries', () => {
@@ -1601,7 +1639,7 @@ describe('compiler compliance', () => {
                 $r3$.ɵɵviewQuery(SomeDirective, true);
               }
               if (rf & 2) {
-                var $tmp$;
+                let $tmp$;
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.someDir = $tmp$.first);
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.someDirs = $tmp$);
               }
@@ -1660,7 +1698,7 @@ describe('compiler compliance', () => {
                 $r3$.ɵɵviewQuery($e1_attrs$, true);
               }
               if (rf & 2) {
-                var $tmp$;
+                let $tmp$;
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.myRef = $tmp$.first);
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.myRefs = $tmp$);
               }
@@ -1711,7 +1749,7 @@ describe('compiler compliance', () => {
                 $r3$.ɵɵviewQuery($refs$, true);
               }
               if (rf & 2) {
-                var $tmp$;
+                let $tmp$;
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.someDir = $tmp$.first);
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.foo = $tmp$.first);
               }
@@ -1777,7 +1815,7 @@ describe('compiler compliance', () => {
                 $r3$.ɵɵviewQuery(SomeDirective, true, TemplateRef);
               }
               if (rf & 2) {
-                var $tmp$;
+                let $tmp$;
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.myRef = $tmp$.first);
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.someDir = $tmp$.first);
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.myRefs = $tmp$);
@@ -1838,7 +1876,7 @@ describe('compiler compliance', () => {
               $r3$.ɵɵcontentQuery(dirIndex, SomeDirective, false);
               }
               if (rf & 2) {
-              var $tmp$;
+              let $tmp$;
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.someDir = $tmp$.first);
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.someDirList = $tmp$);
               }
@@ -1898,7 +1936,7 @@ describe('compiler compliance', () => {
               $r3$.ɵɵcontentQuery(dirIndex, $e1_attrs$, false);
               }
               if (rf & 2) {
-              var $tmp$;
+              let $tmp$;
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.myRef = $tmp$.first);
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.myRefs = $tmp$);
               }
@@ -1957,7 +1995,7 @@ describe('compiler compliance', () => {
               $r3$.ɵɵcontentQuery(dirIndex, $ref0$, true);
               }
               if (rf & 2) {
-              var $tmp$;
+              let $tmp$;
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.someDir = $tmp$.first);
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.foo = $tmp$.first);
               }
@@ -2024,7 +2062,7 @@ describe('compiler compliance', () => {
               $r3$.ɵɵcontentQuery(dirIndex, SomeDirective, false, TemplateRef);
               }
               if (rf & 2) {
-              var $tmp$;
+              let $tmp$;
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.myRef = $tmp$.first);
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.someDir = $tmp$.first);
                 $r3$.ɵɵqueryRefresh($tmp$ = $r3$.ɵɵloadQuery()) && (ctx.myRefs = $tmp$);

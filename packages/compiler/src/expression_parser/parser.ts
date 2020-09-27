@@ -10,11 +10,14 @@ import * as chars from '../chars';
 import {DEFAULT_INTERPOLATION_CONFIG, InterpolationConfig} from '../ml_parser/interpolation_config';
 import {escapeRegExp} from '../util';
 
-import {AbsoluteSourceSpan, AST, AstVisitor, ASTWithSource, Binary, BindingPipe, Chain, Conditional, EmptyExpr, ExpressionBinding, FunctionCall, ImplicitReceiver, Interpolation, KeyedRead, KeyedWrite, LiteralArray, LiteralMap, LiteralMapKey, LiteralPrimitive, MethodCall, NonNullAssert, ParserError, ParseSpan, PrefixNot, PropertyRead, PropertyWrite, Quote, SafeMethodCall, SafePropertyRead, TemplateBinding, TemplateBindingIdentifier, VariableBinding} from './ast';
+import {AbsoluteSourceSpan, AST, AstVisitor, ASTWithSource, Binary, BindingPipe, Chain, Conditional, EmptyExpr, ExpressionBinding, FunctionCall, ImplicitReceiver, Interpolation, KeyedRead, KeyedWrite, LiteralArray, LiteralMap, LiteralMapKey, LiteralPrimitive, MethodCall, NonNullAssert, ParserError, ParseSpan, PrefixNot, PropertyRead, PropertyWrite, Quote, RecursiveAstVisitor, SafeMethodCall, SafePropertyRead, TemplateBinding, TemplateBindingIdentifier, Unary, VariableBinding} from './ast';
 import {EOF, isIdentifier, isQuote, Lexer, Token, TokenType} from './lexer';
 
 export class SplitInterpolation {
-  constructor(public strings: string[], public expressions: string[], public offsets: number[]) {}
+  constructor(
+      public strings: string[], public stringSpans: {start: number, end: number}[],
+      public expressions: string[], public expressionsSpans: {start: number, end: number}[],
+      public offsets: number[]) {}
 }
 
 export class TemplateBindingParseResult {
@@ -194,18 +197,24 @@ export class Parser {
     const strings: string[] = [];
     const expressions: string[] = [];
     const offsets: number[] = [];
+    const stringSpans: {start: number, end: number}[] = [];
+    const expressionSpans: {start: number, end: number}[] = [];
     let offset = 0;
     for (let i = 0; i < parts.length; i++) {
       const part: string = parts[i];
       if (i % 2 === 0) {
         // fixed string
         strings.push(part);
+        const start = offset;
         offset += part.length;
+        stringSpans.push({start, end: offset});
       } else if (part.trim().length > 0) {
+        const start = offset;
         offset += interpolationConfig.start.length;
         expressions.push(part);
         offsets.push(offset);
         offset += part.length + interpolationConfig.end.length;
+        expressionSpans.push({start, end: offset});
       } else {
         this._reportError(
             'Blank expressions are not allowed in interpolated strings', input,
@@ -213,9 +222,10 @@ export class Parser {
             location);
         expressions.push('$implicit');
         offsets.push(offset);
+        expressionSpans.push({start: offset, end: offset});
       }
     }
-    return new SplitInterpolation(strings, expressions, offsets);
+    return new SplitInterpolation(strings, stringSpans, expressions, expressionSpans, offsets);
   }
 
   wrapLiteralPrimitive(input: string|null, location: any, absoluteOffset: number): ASTWithSource {
@@ -591,22 +601,16 @@ export class _ParseAST {
     if (this.next.type == TokenType.Operator) {
       const start = this.inputIndex;
       const operator = this.next.strValue;
-      const literalSpan = new ParseSpan(start, start);
-      const literalSourceSpan = literalSpan.toAbsolute(this.absoluteOffset);
       let result: AST;
       switch (operator) {
         case '+':
           this.advance();
           result = this.parsePrefix();
-          return new Binary(
-              this.span(start), this.sourceSpan(start), '-', result,
-              new LiteralPrimitive(literalSpan, literalSourceSpan, 0));
+          return Unary.createPlus(this.span(start), this.sourceSpan(start), result);
         case '-':
           this.advance();
           result = this.parsePrefix();
-          return new Binary(
-              this.span(start), this.sourceSpan(start), operator,
-              new LiteralPrimitive(literalSpan, literalSourceSpan, 0), result);
+          return Unary.createMinus(this.span(start), this.sourceSpan(start), result);
         case '!':
           this.advance();
           result = this.parsePrefix();
@@ -1052,12 +1056,14 @@ class SimpleExpressionChecker implements AstVisitor {
   visitFunctionCall(ast: FunctionCall, context: any) {}
 
   visitLiteralArray(ast: LiteralArray, context: any) {
-    this.visitAll(ast.expressions);
+    this.visitAll(ast.expressions, context);
   }
 
   visitLiteralMap(ast: LiteralMap, context: any) {
-    this.visitAll(ast.values);
+    this.visitAll(ast.values, context);
   }
+
+  visitUnary(ast: Unary, context: any) {}
 
   visitBinary(ast: Binary, context: any) {}
 
@@ -1075,8 +1081,8 @@ class SimpleExpressionChecker implements AstVisitor {
 
   visitKeyedWrite(ast: KeyedWrite, context: any) {}
 
-  visitAll(asts: any[]): any[] {
-    return asts.map(node => node.visit(this));
+  visitAll(asts: any[], context: any): any[] {
+    return asts.map(node => node.visit(this, context));
   }
 
   visitChain(ast: Chain, context: any) {}
@@ -1085,19 +1091,16 @@ class SimpleExpressionChecker implements AstVisitor {
 }
 
 /**
- * This class extends SimpleExpressionChecker used in View Engine and performs more strict checks to
- * make sure host bindings do not contain pipes. In View Engine, having pipes in host bindings is
+ * This class implements SimpleExpressionChecker used in View Engine and performs more strict checks
+ * to make sure host bindings do not contain pipes. In View Engine, having pipes in host bindings is
  * not supported as well, but in some cases (like `!(value | async)`) the error is not triggered at
  * compile time. In order to preserve View Engine behavior, more strict checks are introduced for
  * Ivy mode only.
  */
-class IvySimpleExpressionChecker extends SimpleExpressionChecker {
-  visitBinary(ast: Binary, context: any) {
-    ast.left.visit(this);
-    ast.right.visit(this);
-  }
+class IvySimpleExpressionChecker extends RecursiveAstVisitor implements SimpleExpressionChecker {
+  errors: string[] = [];
 
-  visitPrefixNot(ast: PrefixNot, context: any) {
-    ast.expression.visit(this);
+  visitPipe() {
+    this.errors.push('pipes');
   }
 }

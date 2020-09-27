@@ -5,18 +5,19 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-import {ConstantPool, Expression, Statement, WrappedNodeExpr, WritePropExpr} from '@angular/compiler';
+import {ConstantPool, Expression, jsDocComment, LeadingComment, Statement, WrappedNodeExpr, WritePropExpr} from '@angular/compiler';
 import MagicString from 'magic-string';
 import * as ts from 'typescript';
 
 import {FileSystem} from '../../../src/ngtsc/file_system';
+import {Logger} from '../../../src/ngtsc/logging';
 import {ImportManager} from '../../../src/ngtsc/translator';
+import {ParsedConfiguration} from '../../../src/perform_compile';
 import {PrivateDeclarationsAnalyses} from '../analysis/private_declarations_analyzer';
 import {SwitchMarkerAnalyses, SwitchMarkerAnalysis} from '../analysis/switch_marker_analyzer';
 import {CompiledClass, CompiledFile, DecorationAnalyses} from '../analysis/types';
 import {IMPORT_PREFIX} from '../constants';
 import {NgccReflectionHost} from '../host/ngcc_host';
-import {Logger} from '../logging/logger';
 import {EntryPointBundle} from '../packages/entry_point_bundle';
 
 import {RedundantDecoratorMap, RenderingFormatter} from './rendering_formatter';
@@ -32,7 +33,8 @@ import {FileToWrite, getImportRewriter, stripExtension} from './utils';
 export class Renderer {
   constructor(
       private host: NgccReflectionHost, private srcFormatter: RenderingFormatter,
-      private fs: FileSystem, private logger: Logger, private bundle: EntryPointBundle) {}
+      private fs: FileSystem, private logger: Logger, private bundle: EntryPointBundle,
+      private tsConfig: ParsedConfiguration|null = null) {}
 
   renderProgram(
       decorationAnalyses: DecorationAnalyses, switchMarkerAnalyses: SwitchMarkerAnalyses,
@@ -82,8 +84,9 @@ export class Renderer {
       this.srcFormatter.removeDecorators(outputText, decoratorsToRemove);
 
       compiledFile.compiledClasses.forEach(clazz => {
-        const renderedDefinition =
-            this.renderDefinitions(compiledFile.sourceFile, clazz, importManager);
+        const renderedDefinition = this.renderDefinitions(
+            compiledFile.sourceFile, clazz, importManager,
+            !!this.tsConfig?.options.annotateForClosureCompiler);
         this.srcFormatter.addDefinitions(outputText, clazz, renderedDefinition);
 
         const renderedStatements =
@@ -160,11 +163,13 @@ export class Renderer {
    * @param imports An object that tracks the imports that are needed by the rendered definitions.
    */
   private renderDefinitions(
-      sourceFile: ts.SourceFile, compiledClass: CompiledClass, imports: ImportManager): string {
+      sourceFile: ts.SourceFile, compiledClass: CompiledClass, imports: ImportManager,
+      annotateForClosureCompiler: boolean): string {
     const name = this.host.getInternalNameOfClass(compiledClass.declaration);
-    const statements: Statement[] = compiledClass.compilation.map(c => {
-      return createAssignmentStatement(name, c.name, c.initializer);
-    });
+    const leadingComment =
+        annotateForClosureCompiler ? jsDocComment([{tagName: 'nocollapse'}]) : undefined;
+    const statements: Statement[] = compiledClass.compilation.map(
+        c => createAssignmentStatement(name, c.name, c.initializer, leadingComment));
     return this.renderStatements(sourceFile, statements, imports);
   }
 
@@ -209,7 +214,15 @@ export function renderConstantPool(
  * @param analyzedClass The info about the class whose statement we want to create.
  */
 function createAssignmentStatement(
-    receiverName: ts.DeclarationName, propName: string, initializer: Expression): Statement {
+    receiverName: ts.DeclarationName, propName: string, initializer: Expression,
+    leadingComment?: LeadingComment): Statement {
   const receiver = new WrappedNodeExpr(receiverName);
-  return new WritePropExpr(receiver, propName, initializer).toStmt();
+  const statement =
+      new WritePropExpr(
+          receiver, propName, initializer, /* type */ undefined, /* sourceSpan */ undefined)
+          .toStmt();
+  if (leadingComment !== undefined) {
+    statement.addLeadingComment(leadingComment);
+  }
+  return statement;
 }

@@ -7,14 +7,15 @@
  */
 import {absoluteFrom, FileSystem, getFileSystem, join} from '../../../src/ngtsc/file_system';
 import {runInEachFileSystem} from '../../../src/ngtsc/file_system/testing';
+import {MockLogger} from '../../../src/ngtsc/logging/testing';
 import {loadTestFiles} from '../../../test/helpers';
 import {NgccConfiguration} from '../../src/packages/configuration';
-import {EntryPoint, EntryPointFormat, EntryPointJsonProperty, getEntryPointInfo, INCOMPATIBLE_ENTRY_POINT, NO_ENTRY_POINT} from '../../src/packages/entry_point';
+import {EntryPoint, EntryPointFormat, EntryPointJsonProperty, getEntryPointInfo, isEntryPoint} from '../../src/packages/entry_point';
 import {EntryPointBundle, makeEntryPointBundle} from '../../src/packages/entry_point_bundle';
+import {createModuleResolutionCache, SharedFileCache} from '../../src/packages/source_file_cache';
 import {FileWriter} from '../../src/writing/file_writer';
 import {NewEntryPointFileWriter} from '../../src/writing/new_entry_point_file_writer';
 import {DirectPackageJsonUpdater} from '../../src/writing/package_json_updater';
-import {MockLogger} from '../helpers/mock_logger';
 import {loadPackageJson} from '../packages/entry_point_spec';
 
 runInEachFileSystem(() => {
@@ -106,7 +107,7 @@ runInEachFileSystem(() => {
         const config = new NgccConfiguration(fs, _('/'));
         const result = getEntryPointInfo(
             fs, config, logger, _('/node_modules/test'), _('/node_modules/test'))!;
-        if (result === NO_ENTRY_POINT || result === INCOMPATIBLE_ENTRY_POINT) {
+        if (!isEntryPoint(result)) {
           return fail(`Expected an entry point but got ${result}`);
         }
         entryPoint = result;
@@ -246,7 +247,7 @@ runInEachFileSystem(() => {
         const config = new NgccConfiguration(fs, _('/'));
         const result = getEntryPointInfo(
             fs, config, logger, _('/node_modules/test'), _('/node_modules/test/a'))!;
-        if (result === NO_ENTRY_POINT || result === INCOMPATIBLE_ENTRY_POINT) {
+        if (!isEntryPoint(result)) {
           return fail(`Expected an entry point but got ${result}`);
         }
         entryPoint = result;
@@ -375,7 +376,7 @@ runInEachFileSystem(() => {
         const config = new NgccConfiguration(fs, _('/'));
         const result = getEntryPointInfo(
             fs, config, new MockLogger(), _('/node_modules/test'), _('/node_modules/test/b'))!;
-        if (result === NO_ENTRY_POINT || result === INCOMPATIBLE_ENTRY_POINT) {
+        if (!isEntryPoint(result)) {
           return fail(`Expected an entry point but got ${result}`);
         }
         entryPoint = result;
@@ -501,7 +502,7 @@ runInEachFileSystem(() => {
         const config = new NgccConfiguration(fs, _('/'));
         const result = getEntryPointInfo(
             fs, config, logger, _('/node_modules/test'), _('/node_modules/test'))!;
-        if (result === NO_ENTRY_POINT || result === INCOMPATIBLE_ENTRY_POINT) {
+        if (!isEntryPoint(result)) {
           return fail(`Expected an entry point but got ${result}`);
         }
         entryPoint = result;
@@ -577,7 +578,7 @@ runInEachFileSystem(() => {
 
       it('should revert changes to `package.json`', () => {
         const entryPoint = esm5bundle.entryPoint;
-        const packageJsonPath = join(entryPoint.package, 'package.json');
+        const packageJsonPath = join(entryPoint.packagePath, 'package.json');
 
         fileWriter.writeBundle(
             esm5bundle,
@@ -634,7 +635,9 @@ runInEachFileSystem(() => {
   function makeTestBundle(
       fs: FileSystem, entryPoint: EntryPoint, formatProperty: EntryPointJsonProperty,
       format: EntryPointFormat): EntryPointBundle {
+    const moduleResolutionCache = createModuleResolutionCache(fs);
     return makeEntryPointBundle(
-        fs, entryPoint, entryPoint.packageJson[formatProperty]!, false, format, true);
+        fs, entryPoint, new SharedFileCache(fs), moduleResolutionCache,
+        entryPoint.packageJson[formatProperty]!, false, format, true);
   }
 });

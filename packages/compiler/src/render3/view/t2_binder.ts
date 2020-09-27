@@ -7,7 +7,7 @@
  */
 
 import {AST, BindingPipe, ImplicitReceiver, MethodCall, PropertyRead, PropertyWrite, RecursiveAstVisitor, SafeMethodCall, SafePropertyRead} from '../../expression_parser/ast';
-import {CssSelector, SelectorMatcher} from '../../selector';
+import {SelectorMatcher} from '../../selector';
 import {BoundAttribute, BoundEvent, BoundText, Content, Element, Icu, Node, Reference, Template, Text, TextAttribute, Variable, Visitor} from '../r3_ast';
 
 import {BoundTarget, DirectiveMeta, Target, TargetBinder} from './t2_api';
@@ -278,7 +278,7 @@ class DirectiveBinder<DirectiveT extends DirectiveMeta> implements Visitor {
     type BoundNode = BoundAttribute|BoundEvent|TextAttribute;
     const setAttributeBinding =
         (attribute: BoundNode, ioType: keyof Pick<DirectiveMeta, 'inputs'|'outputs'>) => {
-          const dir = directives.find(dir => dir[ioType].hasOwnProperty(attribute.name));
+          const dir = directives.find(dir => dir[ioType].hasBindingPropertyName(attribute.name));
           const binding = dir !== undefined ? dir : node;
           this.bindings.set(attribute, binding);
         };
@@ -434,7 +434,10 @@ class TemplateBinder extends RecursiveAstVisitor implements Visitor {
   visitText(text: Text) {}
   visitContent(content: Content) {}
   visitTextAttribute(attribute: TextAttribute) {}
-  visitIcu(icu: Icu): void {}
+  visitIcu(icu: Icu): void {
+    Object.keys(icu.vars).forEach(key => icu.vars[key].visit(this));
+    Object.keys(icu.placeholders).forEach(key => icu.placeholders[key].visit(this));
+  }
 
   // The remaining visitors are concerned with processing AST expressions within template bindings
 

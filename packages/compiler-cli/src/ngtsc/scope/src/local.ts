@@ -9,7 +9,7 @@
 import {ExternalExpr, SchemaMetadata} from '@angular/compiler';
 import * as ts from 'typescript';
 
-import {ErrorCode, makeDiagnostic} from '../../diagnostics';
+import {ErrorCode, makeDiagnostic, makeRelatedInformation} from '../../diagnostics';
 import {AliasingHost, Reexport, Reference, ReferenceEmitter} from '../../imports';
 import {DirectiveMeta, MetadataReader, MetadataRegistry, NgModuleMeta, PipeMeta} from '../../metadata';
 import {ClassDeclaration} from '../../reflection';
@@ -26,6 +26,7 @@ export interface LocalNgModuleData {
 }
 
 export interface LocalModuleScope extends ExportScope {
+  ngModule: ClassDeclaration;
   compilation: ScopeData;
   reexports: Reexport[]|null;
   schemas: SchemaMetadata[];
@@ -358,7 +359,8 @@ export class LocalModuleScopeRegistry implements MetadataRegistry, ComponentScop
                     ngModule.ref.node.name
                         .text}', but is not a directive, a component, or a pipe. ` +
                 `Either remove it from the NgModule's declarations, or add an appropriate Angular decorator.`,
-            [{node: decl.node.name, messageText: `'${decl.node.name.text}' is declared here.`}]));
+            [makeRelatedInformation(
+                decl.node.name, `'${decl.node.name.text}' is declared here.`)]));
         continue;
       }
 
@@ -432,7 +434,8 @@ export class LocalModuleScopeRegistry implements MetadataRegistry, ComponentScop
     }
 
     // Finally, produce the `LocalModuleScope` with both the compilation and export scopes.
-    const scope = {
+    const scope: LocalModuleScope = {
+      ngModule: ngModule.ref.node,
       compilation: {
         directives: Array.from(compilationDirectives.values()),
         pipes: Array.from(compilationPipes.values()),
@@ -643,8 +646,8 @@ function reexportCollision(
     To fix this problem please re-export one or both classes directly from this file.
   `.trim(),
       [
-        {node: refA.node.name, messageText: childMessageText},
-        {node: refB.node.name, messageText: childMessageText},
+        makeRelatedInformation(refA.node.name, childMessageText),
+        makeRelatedInformation(refB.node.name, childMessageText),
       ]);
 }
 

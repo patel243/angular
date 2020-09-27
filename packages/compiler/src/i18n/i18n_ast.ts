@@ -87,7 +87,9 @@ export class TagPlaceholder implements Node {
   constructor(
       public tag: string, public attrs: {[k: string]: string}, public startName: string,
       public closeName: string, public children: Node[], public isVoid: boolean,
-      public sourceSpan: ParseSourceSpan) {}
+      // TODO sourceSpan should cover all (we need a startSourceSpan and endSourceSpan)
+      public sourceSpan: ParseSourceSpan, public startSourceSpan: ParseSourceSpan|null,
+      public endSourceSpan: ParseSourceSpan|null) {}
 
   visit(visitor: Visitor, context?: any): any {
     return visitor.visitTagPlaceholder(this, context);
@@ -151,7 +153,8 @@ export class CloneVisitor implements Visitor {
   visitTagPlaceholder(ph: TagPlaceholder, context?: any): TagPlaceholder {
     const children = ph.children.map(n => n.visit(this, context));
     return new TagPlaceholder(
-        ph.tag, ph.attrs, ph.startName, ph.closeName, children, ph.isVoid, ph.sourceSpan);
+        ph.tag, ph.attrs, ph.startName, ph.closeName, children, ph.isVoid, ph.sourceSpan,
+        ph.startSourceSpan, ph.endSourceSpan);
   }
 
   visitPlaceholder(ph: Placeholder, context?: any): Placeholder {

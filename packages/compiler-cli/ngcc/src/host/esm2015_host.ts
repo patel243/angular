@@ -8,9 +8,10 @@
 
 import * as ts from 'typescript';
 
-import {ClassDeclaration, ClassMember, ClassMemberKind, CtorParameter, Declaration, Decorator, EnumMember, isDecoratorIdentifier, isNamedClassDeclaration, isNamedFunctionDeclaration, isNamedVariableDeclaration, KnownDeclaration, reflectObjectLiteral, SpecialDeclarationKind, TypeScriptReflectionHost, TypeValueReference} from '../../../src/ngtsc/reflection';
+import {absoluteFromSourceFile} from '../../../src/ngtsc/file_system';
+import {Logger} from '../../../src/ngtsc/logging';
+import {ClassDeclaration, ClassMember, ClassMemberKind, CtorParameter, Declaration, Decorator, EnumMember, Import, isDecoratorIdentifier, isNamedClassDeclaration, isNamedFunctionDeclaration, isNamedVariableDeclaration, KnownDeclaration, reflectObjectLiteral, SpecialDeclarationKind, TypeScriptReflectionHost, TypeValueReference, TypeValueReferenceKind, ValueUnavailableKind} from '../../../src/ngtsc/reflection';
 import {isWithinPackage} from '../analysis/util';
-import {Logger} from '../logging/logger';
 import {BundleProgram} from '../packages/bundle_program';
 import {findAll, getNameText, hasNameIdentifier, isDefined, stripDollarSuffix} from '../utils';
 
@@ -866,10 +867,10 @@ export class Esm2015ReflectionHost extends TypeScriptReflectionHost implements N
   /**
    * Try to retrieve the symbol of a static property on a class.
    *
-   * In some cases, a static property can either be set on the inner declaration inside the class'
-   * IIFE, or it can be set on the outer variable declaration. Therefore, the host checks both
-   * places, first looking up the property on the inner symbol, and if the property is not found it
-   * will fall back to looking up the property on the outer symbol.
+   * In some cases, a static property can either be set on the inner (implementation or adjacent)
+   * declaration inside the class' IIFE, or it can be set on the outer variable declaration.
+   * Therefore, the host checks all places, first looking up the property on the inner symbols, and
+   * if the property is not found it will fall back to looking up the property on the outer symbol.
    *
    * @param symbol the class whose property we are interested in.
    * @param propertyName the name of static property.
@@ -877,8 +878,9 @@ export class Esm2015ReflectionHost extends TypeScriptReflectionHost implements N
    */
   protected getStaticProperty(symbol: NgccClassSymbol, propertyName: ts.__String): ts.Symbol
       |undefined {
-    return symbol.implementation.exports && symbol.implementation.exports.get(propertyName) ||
-        symbol.declaration.exports && symbol.declaration.exports.get(propertyName);
+    return symbol.implementation.exports?.get(propertyName) ||
+        symbol.adjacent?.exports?.get(propertyName) ||
+        symbol.declaration.exports?.get(propertyName);
   }
 
   /**
@@ -1591,30 +1593,7 @@ export class Esm2015ReflectionHost extends TypeScriptReflectionHost implements N
           constructorParamInfo[index] :
           {decorators: null, typeExpression: null};
       const nameNode = node.name;
-
-      let typeValueReference: TypeValueReference|null = null;
-      if (typeExpression !== null) {
-        // `typeExpression` is an expression in a "type" context. Resolve it to a declared value.
-        // Either it's a reference to an imported type, or a type declared locally. Distinguish the
-        // two cases with `getDeclarationOfExpression`.
-        const decl = this.getDeclarationOfExpression(typeExpression);
-        if (decl !== null && decl.node !== null && decl.viaModule !== null &&
-            isNamedDeclaration(decl.node)) {
-          typeValueReference = {
-            local: false,
-            valueDeclaration: decl.node,
-            moduleName: decl.viaModule,
-            importedName: decl.node.name.text,
-            nestedPath: null,
-          };
-        } else {
-          typeValueReference = {
-            local: true,
-            expression: typeExpression,
-            defaultImportStatement: null,
-          };
-        }
-      }
+      const typeValueReference = this.typeToValue(typeExpression);
 
       return {
         name: getNameText(nameNode),
@@ -1624,6 +1603,59 @@ export class Esm2015ReflectionHost extends TypeScriptReflectionHost implements N
         decorators
       };
     });
+  }
+
+  /**
+   * Compute the `TypeValueReference` for the given `typeExpression`.
+   *
+   * Although `typeExpression` is a valid `ts.Expression` that could be emitted directly into the
+   * generated code, ngcc still needs to resolve the declaration and create an `IMPORTED` type
+   * value reference as the compiler has specialized handling for some symbols, for example
+   * `ChangeDetectorRef` from `@angular/core`. Such an `IMPORTED` type value reference will result
+   * in a newly generated namespace import, instead of emitting the original `typeExpression` as is.
+   */
+  private typeToValue(typeExpression: ts.Expression|null): TypeValueReference {
+    if (typeExpression === null) {
+      return {
+        kind: TypeValueReferenceKind.UNAVAILABLE,
+        reason: {kind: ValueUnavailableKind.MISSING_TYPE},
+      };
+    }
+
+    const imp = this.getImportOfExpression(typeExpression);
+    const decl = this.getDeclarationOfExpression(typeExpression);
+    if (imp === null || decl === null || decl.node === null) {
+      return {
+        kind: TypeValueReferenceKind.LOCAL,
+        expression: typeExpression,
+        defaultImportStatement: null,
+      };
+    }
+
+    return {
+      kind: TypeValueReferenceKind.IMPORTED,
+      valueDeclaration: decl.node,
+      moduleName: imp.from,
+      importedName: imp.name,
+      nestedPath: null,
+    };
+  }
+
+  /**
+   * Determines where the `expression` is imported from.
+   *
+   * @param expression the expression to determine the import details for.
+   * @returns the `Import` for the expression, or `null` if the expression is not imported or the
+   * expression syntax is not supported.
+   */
+  private getImportOfExpression(expression: ts.Expression): Import|null {
+    if (ts.isIdentifier(expression)) {
+      return this.getImportOfIdentifier(expression);
+    } else if (ts.isPropertyAccessExpression(expression) && ts.isIdentifier(expression.name)) {
+      return this.getImportOfIdentifier(expression.name);
+    } else {
+      return null;
+    }
   }
 
   /**
@@ -2524,7 +2556,7 @@ function getRootFileOrFail(bundle: BundleProgram): ts.SourceFile {
 function getNonRootPackageFiles(bundle: BundleProgram): ts.SourceFile[] {
   const rootFile = bundle.program.getSourceFile(bundle.path);
   return bundle.program.getSourceFiles().filter(
-      f => (f !== rootFile) && isWithinPackage(bundle.package, f));
+      f => (f !== rootFile) && isWithinPackage(bundle.package, absoluteFromSourceFile(f)));
 }
 
 function isTopLevel(node: ts.Node): boolean {

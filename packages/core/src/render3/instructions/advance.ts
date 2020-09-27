@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-import {assertDataInRange, assertGreaterThan} from '../../util/assert';
+import {assertGreaterThan, assertIndexInRange} from '../../util/assert';
 import {executeCheckHooks, executeInitAndCheckHooks} from '../hooks';
 import {FLAGS, HEADER_OFFSET, InitPhaseState, LView, LViewFlags, TView} from '../interfaces/view';
 import {getCheckNoChangesMode, getLView, getSelectedIndex, getTView, setSelectedIndex} from '../state';
@@ -39,20 +39,10 @@ export function ɵɵadvance(delta: number): void {
   selectIndexInternal(getTView(), getLView(), getSelectedIndex() + delta, getCheckNoChangesMode());
 }
 
-/**
- * Selects an element for later binding instructions.
- * @deprecated No longer being generated, but still used in unit tests.
- * @codeGenApi
- */
-export function ɵɵselect(index: number): void {
-  // TODO(misko): Remove this function as it is no longer being used.
-  selectIndexInternal(getTView(), getLView(), index, getCheckNoChangesMode());
-}
-
 export function selectIndexInternal(
     tView: TView, lView: LView, index: number, checkNoChangesMode: boolean) {
   ngDevMode && assertGreaterThan(index, -1, 'Invalid index');
-  ngDevMode && assertDataInRange(lView, index + HEADER_OFFSET);
+  ngDevMode && assertIndexInRange(lView, index + HEADER_OFFSET);
 
   // Flush the initial hooks for elements in the view that have been added up to this point.
   // PERF WARNING: do NOT extract this to a separate function without running benchmarks

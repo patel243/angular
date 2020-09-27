@@ -6,8 +6,8 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {exec} from 'shelljs';
 import {getRepoBaseDir} from './config';
+import {exec} from './shelljs';
 
 /**
  * A list of all files currently in the repo which have been modified since the provided sha.
@@ -27,14 +27,23 @@ export function allChangedFilesSince(sha = 'HEAD') {
   return Array.from(new Set([...diffFiles, ...untrackedFiles]));
 }
 
+/**
+ * A list of all staged files which have been modified.
+ *
+ * Only added, created and modified files are listed as others (deleted, renamed, etc) aren't
+ * changed or available as content to act upon.
+ */
+export function allStagedFiles() {
+  return gitOutputAsArray(`git diff --staged --name-only --diff-filter=ACM`);
+}
+
+
+
 export function allFiles() {
   return gitOutputAsArray(`git ls-files`);
 }
 
 
 function gitOutputAsArray(cmd: string) {
-  return exec(cmd, {cwd: getRepoBaseDir(), silent: true})
-      .split('\n')
-      .map(x => x.trim())
-      .filter(x => !!x);
+  return exec(cmd, {cwd: getRepoBaseDir()}).split('\n').map(x => x.trim()).filter(x => !!x);
 }

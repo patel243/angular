@@ -44,6 +44,16 @@
       "version": "10.0.0-beta",
       "description": "Undecorated classes with Angular features migration. In version 10, classes that use Angular features and do not have an Angular decorator are no longer supported. Read more about this here: https://v10.angular.io/guide/migration-undecorated-classes",
       "factory": "./migrations/undecorated-classes-with-decorated-fields/index"
+    },
+    "migration-v11-navigation-extras-omissions": {
+      "version": "11.0.0-beta",
+      "description": "NavigationExtras omissions migration. In version 11, some unsupported properties were omitted from the `extras` parameter of the `Router.navigateByUrl` and `Router.createUrlTree` methods.",
+      "factory": "./migrations/navigation-extras-omissions/index"
+    },
+    "migration-v11-router-relative-link-resolution-default": {
+      "version": "11.0.0-beta",
+      "description": "The default value for `relativeLinkResolution` is changing from 'legacy' to 'corrected'.\nThis migration updates `RouterModule` configurations that use the default value to \nnow specifically use 'legacy' to prevent breakages when updating.",
+      "factory": "./migrations/relative-link-resolution/index"
     }
   }
 }

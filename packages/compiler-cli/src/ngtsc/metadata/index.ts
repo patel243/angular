@@ -8,5 +8,7 @@
 
 export * from './src/api';
 export {DtsMetadataReader} from './src/dts';
+export {flattenInheritedDirectiveMetadata} from './src/inheritance';
 export {CompoundMetadataRegistry, LocalMetadataRegistry, InjectableClassRegistry} from './src/registry';
-export {extractDirectiveGuards, CompoundMetadataReader} from './src/util';
+export {extractDirectiveTypeCheckMeta, CompoundMetadataReader} from './src/util';
+export {BindingPropertyName, ClassPropertyMapping, ClassPropertyName, InputOrOutput} from './src/property_mapping';

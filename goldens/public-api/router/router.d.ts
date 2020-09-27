@@ -51,6 +51,14 @@ export declare class ActivationStart {
     toString(): string;
 }
 
+export declare abstract class BaseRouteReuseStrategy implements RouteReuseStrategy {
+    retrieve(route: ActivatedRouteSnapshot): DetachedRouteHandle | null;
+    shouldAttach(route: ActivatedRouteSnapshot): boolean;
+    shouldDetach(route: ActivatedRouteSnapshot): boolean;
+    shouldReuseRoute(future: ActivatedRouteSnapshot, curr: ActivatedRouteSnapshot): boolean;
+    store(route: ActivatedRouteSnapshot, detachedTree: DetachedRouteHandle): void;
+}
+
 export declare interface CanActivate {
     canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree;
 }
@@ -148,7 +156,6 @@ export declare class GuardsCheckStart extends RouterEvent {
     toString(): string;
 }
 
-/** @deprecated */
 export declare type InitialNavigation = true | false | 'enabled' | 'disabled' | 'legacy_enabled' | 'legacy_disabled';
 
 export declare type LoadChildren = LoadChildrenCallback | DeprecatedLoadChildren;
@@ -164,6 +171,14 @@ export declare type Navigation = {
     extras: NavigationExtras;
     previousNavigation: Navigation | null;
 };
+
+export declare interface NavigationBehaviorOptions {
+    replaceUrl?: boolean;
+    skipLocationChange?: boolean;
+    state?: {
+        [k: string]: any;
+    };
+}
 
 export declare class NavigationCancel extends RouterEvent {
     reason: string;
@@ -192,18 +207,7 @@ export declare class NavigationError extends RouterEvent {
     toString(): string;
 }
 
-export declare interface NavigationExtras {
-    fragment?: string;
-    preserveFragment?: boolean;
-    /** @deprecated */ preserveQueryParams?: boolean;
-    queryParams?: Params | null;
-    queryParamsHandling?: QueryParamsHandling | null;
-    relativeTo?: ActivatedRoute | null;
-    replaceUrl?: boolean;
-    skipLocationChange?: boolean;
-    state?: {
-        [k: string]: any;
-    };
+export declare interface NavigationExtras extends UrlCreationOptions, NavigationBehaviorOptions {
 }
 
 export declare class NavigationStart extends RouterEvent {
@@ -337,13 +341,13 @@ export declare class Router {
     urlHandlingStrategy: UrlHandlingStrategy;
     urlUpdateStrategy: 'deferred' | 'eager';
     constructor(rootComponentType: Type<any> | null, urlSerializer: UrlSerializer, rootContexts: ChildrenOutletContexts, location: Location, injector: Injector, loader: NgModuleFactoryLoader, compiler: Compiler, config: Routes);
-    createUrlTree(commands: any[], navigationExtras?: NavigationExtras): UrlTree;
+    createUrlTree(commands: any[], navigationExtras?: UrlCreationOptions): UrlTree;
     dispose(): void;
     getCurrentNavigation(): Navigation | null;
     initialNavigation(): void;
     isActive(url: string | UrlTree, exact: boolean): boolean;
     navigate(commands: any[], extras?: NavigationExtras): Promise<boolean>;
-    navigateByUrl(url: string | UrlTree, extras?: NavigationExtras): Promise<boolean>;
+    navigateByUrl(url: string | UrlTree, extras?: NavigationBehaviorOptions): Promise<boolean>;
     ngOnDestroy(): void;
     parseUrl(url: string): UrlTree;
     resetConfig(config: Routes): void;
@@ -371,7 +375,7 @@ export declare class RouterEvent {
     url: string);
 }
 
-export declare class RouterLink {
+export declare class RouterLink implements OnChanges {
     fragment: string;
     preserveFragment: boolean;
     /** @deprecated */ set preserveQueryParams(value: boolean);
@@ -387,6 +391,7 @@ export declare class RouterLink {
     };
     get urlTree(): UrlTree;
     constructor(router: Router, route: ActivatedRoute, tabIndex: string, renderer: Renderer2, el: ElementRef);
+    ngOnChanges(changes: SimpleChanges): void;
     onClick(): boolean;
 }
 
@@ -398,7 +403,7 @@ export declare class RouterLinkActive implements OnChanges, OnDestroy, AfterCont
     routerLinkActiveOptions: {
         exact: boolean;
     };
-    constructor(router: Router, element: ElementRef, renderer: Renderer2, link?: RouterLink | undefined, linkWithHref?: RouterLinkWithHref | undefined);
+    constructor(router: Router, element: ElementRef, renderer: Renderer2, cdr: ChangeDetectorRef, link?: RouterLink | undefined, linkWithHref?: RouterLinkWithHref | undefined);
     ngAfterContentInit(): void;
     ngOnChanges(changes: SimpleChanges): void;
     ngOnDestroy(): void;
@@ -422,9 +427,9 @@ export declare class RouterLinkWithHref implements OnChanges, OnDestroy {
     target: string;
     get urlTree(): UrlTree;
     constructor(router: Router, route: ActivatedRoute, locationStrategy: LocationStrategy);
-    ngOnChanges(changes: {}): any;
+    ngOnChanges(changes: SimpleChanges): any;
     ngOnDestroy(): any;
-    onClick(button: number, ctrlKey: boolean, metaKey: boolean, shiftKey: boolean): boolean;
+    onClick(button: number, ctrlKey: boolean, shiftKey: boolean, altKey: boolean, metaKey: boolean): boolean;
 }
 
 export declare class RouterModule {
@@ -492,6 +497,15 @@ export declare class Scroll {
     position: [number, number] | null,
     anchor: string | null);
     toString(): string;
+}
+
+export declare interface UrlCreationOptions {
+    fragment?: string;
+    preserveFragment?: boolean;
+    /** @deprecated */ preserveQueryParams?: boolean;
+    queryParams?: Params | null;
+    queryParamsHandling?: QueryParamsHandling | null;
+    relativeTo?: ActivatedRoute | null;
 }
 
 export declare abstract class UrlHandlingStrategy {

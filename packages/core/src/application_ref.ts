@@ -15,7 +15,10 @@ import {ApplicationInitStatus} from './application_init';
 import {APP_BOOTSTRAP_LISTENER, PLATFORM_INITIALIZER} from './application_tokens';
 import {getCompilerFacade} from './compiler/compiler_facade';
 import {Console} from './console';
-import {Injectable, InjectionToken, Injector, StaticProvider} from './di';
+import {Injectable} from './di/injectable';
+import {InjectionToken} from './di/injection_token';
+import {Injector} from './di/injector';
+import {StaticProvider} from './di/interface/provider';
 import {INJECTOR_SCOPE} from './di/scope';
 import {ErrorHandler} from './error_handler';
 import {DEFAULT_LOCALE_ID} from './i18n/localization';
@@ -30,7 +33,7 @@ import {InternalViewRef, ViewRef} from './linker/view_ref';
 import {isComponentResourceResolutionQueueEmpty, resolveComponentResources} from './metadata/resource_loading';
 import {assertNgModuleType} from './render3/assert';
 import {ComponentFactory as R3ComponentFactory} from './render3/component_ref';
-import {setLocaleId} from './render3/i18n';
+import {setLocaleId} from './render3/i18n/i18n_locale_id';
 import {setJitOptions} from './render3/jit/jit_options';
 import {NgModuleFactory as R3NgModuleFactory} from './render3/ng_module_ref';
 import {publishDefaultGlobalUtils as _publishDefaultGlobalUtils} from './render3/util/global_utils';
@@ -60,21 +63,22 @@ export function compileNgModuleFactory__POST_R3__<M>(
     moduleType: Type<M>): Promise<NgModuleFactory<M>> {
   ngDevMode && assertNgModuleType(moduleType);
 
-  const compilerOptions = injector.get(COMPILER_OPTIONS, []).concat(options);
+  const moduleFactory = new R3NgModuleFactory(moduleType);
 
-  if (typeof ngJitMode === 'undefined' || ngJitMode) {
-    // Configure the compiler to use the provided options. This call may fail when multiple modules
-    // are bootstrapped with incompatible options, as a component can only be compiled according to
-    // a single set of options.
-    setJitOptions({
-      defaultEncapsulation:
-          _lastDefined(compilerOptions.map(options => options.defaultEncapsulation)),
-      preserveWhitespaces:
-          _lastDefined(compilerOptions.map(options => options.preserveWhitespaces)),
-    });
+  // All of the logic below is irrelevant for AOT-compiled code.
+  if (typeof ngJitMode !== 'undefined' && !ngJitMode) {
+    return Promise.resolve(moduleFactory);
   }
 
-  const moduleFactory = new R3NgModuleFactory(moduleType);
+  const compilerOptions = injector.get(COMPILER_OPTIONS, []).concat(options);
+
+  // Configure the compiler to use the provided options. This call may fail when multiple modules
+  // are bootstrapped with incompatible options, as a component can only be compiled according to
+  // a single set of options.
+  setJitOptions({
+    defaultEncapsulation: _lastDefined(compilerOptions.map(opts => opts.defaultEncapsulation)),
+    preserveWhitespaces: _lastDefined(compilerOptions.map(opts => opts.preserveWhitespaces)),
+  });
 
   if (isComponentResourceResolutionQueueEmpty()) {
     return Promise.resolve(moduleFactory);
@@ -134,7 +138,7 @@ export class NgProbeToken {
 
 /**
  * Creates a platform.
- * Platforms have to be eagerly created via this function.
+ * Platforms must be created on launch using this function.
  *
  * @publicApi
  */
@@ -152,7 +156,13 @@ export function createPlatform(injector: Injector): PlatformRef {
 }
 
 /**
- * Creates a factory for a platform
+ * Creates a factory for a platform. Can be used to provide or override `Providers` specific to
+ * your applciation's runtime needs, such as `PLATFORM_INITIALIZER` and `PLATFORM_ID`.
+ * @param parentPlatformFactory Another platform factory to modify. Allows you to compose factories
+ * to build up configurations that might be required by different libraries or parts of the
+ * application.
+ * @param name Identifies the new platform factory.
+ * @param providers A set of dependency providers for platforms created with the new factory.
  *
  * @publicApi
  */
@@ -181,7 +191,7 @@ export function createPlatformFactory(
 }
 
 /**
- * Checks that there currently is a platform which contains the given token as a provider.
+ * Checks that there is currently a platform that contains the given token as a provider.
  *
  * @publicApi
  */
@@ -201,7 +211,8 @@ export function assertPlatform(requiredToken: any): PlatformRef {
 }
 
 /**
- * Destroy the existing platform.
+ * Destroys the current Angular platform and all Angular applications on the page.
+ * Destroys all modules and listeners registered with the platform.
  *
  * @publicApi
  */
@@ -258,12 +269,11 @@ export interface BootstrapOptions {
 }
 
 /**
- * The Angular platform is the entry point for Angular on a web page. Each page
- * has exactly one platform, and services (such as reflection) which are common
+ * The Angular platform is the entry point for Angular on a web page.
+ * Each page has exactly one platform. Services (such as reflection) which are common
  * to every Angular application running on the page are bound in its scope.
- *
- * A page's platform is initialized implicitly when a platform is created via a platform factory
- * (e.g. {@link platformBrowser}), or explicitly by calling the {@link createPlatform} function.
+ * A page's platform is initialized implicitly when a platform is created using a platform
+ * factory such as `PlatformBrowser`, or explicitly by calling the `createPlatform()` function.
  *
  * @publicApi
  */
@@ -277,11 +287,11 @@ export class PlatformRef {
   constructor(private _injector: Injector) {}
 
   /**
-   * Creates an instance of an `@NgModule` for the given platform
-   * for offline compilation.
+   * Creates an instance of an `@NgModule` for the given platform for offline compilation.
    *
    * @usageNotes
-   * ### Simple Example
+   *
+   * The following example creates the NgModule for a browser platform.
    *
    * ```typescript
    * my_module.ts:
@@ -383,14 +393,14 @@ export class PlatformRef {
   }
 
   /**
-   * Register a listener to be called when the platform is disposed.
+   * Registers a listener to be called when the platform is destroyed.
    */
   onDestroy(callback: () => void): void {
     this._destroyListeners.push(callback);
   }
 
   /**
-   * Retrieve the platform {@link Injector}, which is the parent injector for
+   * Retrieves the platform {@link Injector}, which is the parent injector for
    * every Angular application on the page and provides singleton providers.
    */
   get injector(): Injector {
@@ -398,7 +408,8 @@ export class PlatformRef {
   }
 
   /**
-   * Destroy the Angular platform and all Angular applications on the page.
+   * Destroys the current Angular platform and all Angular applications on the page.
+   * Destroys all modules and listeners registered with the platform.
    */
   destroy() {
     if (this._destroyed) {

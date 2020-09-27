@@ -10,6 +10,10 @@ import {tcb, TestDeclaration} from './test_utils';
 
 describe('type check blocks diagnostics', () => {
   describe('parse spans', () => {
+    it('should annotate unary ops', () => {
+      expect(tcbWithSpans('{{ -a }}')).toContain('(-((ctx).a /*4,5*/) /*4,5*/) /*3,5*/');
+    });
+
     it('should annotate binary ops', () => {
       expect(tcbWithSpans('{{ a + b }}'))
           .toContain('(((ctx).a /*3,4*/) /*3,4*/) + (((ctx).b /*7,8*/) /*7,8*/) /*3,8*/');
@@ -18,12 +22,12 @@ describe('type check blocks diagnostics', () => {
     it('should annotate conditions', () => {
       expect(tcbWithSpans('{{ a ? b : c }}'))
           .toContain(
-              '(((ctx).a /*3,4*/) /*3,4*/ ? ((ctx).b /*7,8*/) /*7,8*/ : ((ctx).c /*11,12*/) /*11,12*/) /*3,12*/');
+              '(((ctx).a /*3,4*/) /*3,4*/ ? ((ctx).b /*7,8*/) /*7,8*/ : (((ctx).c /*11,12*/) /*11,12*/)) /*3,12*/');
     });
 
     it('should annotate interpolations', () => {
       expect(tcbWithSpans('{{ hello }} {{ world }}'))
-          .toContain('"" + ((ctx).hello /*3,8*/) /*3,8*/ + ((ctx).world /*15,20*/) /*15,20*/');
+          .toContain('"" + (((ctx).hello /*3,8*/) /*3,8*/) + (((ctx).world /*15,20*/) /*15,20*/)');
     });
 
     it('should annotate literal map expressions', () => {
@@ -43,7 +47,7 @@ describe('type check blocks diagnostics', () => {
 
     it('should annotate literals', () => {
       const TEMPLATE = '{{ 123 }}';
-      expect(tcbWithSpans(TEMPLATE)).toContain('123 /*3,6*/;');
+      expect(tcbWithSpans(TEMPLATE)).toContain('123 /*3,6*/');
     });
 
     it('should annotate non-null assertions', () => {
@@ -53,7 +57,7 @@ describe('type check blocks diagnostics', () => {
 
     it('should annotate prefix not', () => {
       const TEMPLATE = `{{ !a }}`;
-      expect(tcbWithSpans(TEMPLATE)).toContain('!(((ctx).a /*4,5*/) /*4,5*/) /*3,5*/;');
+      expect(tcbWithSpans(TEMPLATE)).toContain('!(((ctx).a /*4,5*/) /*4,5*/) /*3,5*/');
     });
 
     it('should annotate method calls', () => {
@@ -137,7 +141,7 @@ describe('type check blocks diagnostics', () => {
       }];
       const block = tcbWithSpans(TEMPLATE, PIPES);
       expect(block).toContain(
-          '(null as TestPipe).transform(((ctx).a /*3,4*/) /*3,4*/, ((ctx).b /*12,13*/) /*12,13*/) /*3,13*/;');
+          '((null as TestPipe).transform(((ctx).a /*3,4*/) /*3,4*/, ((ctx).b /*12,13*/) /*12,13*/) /*3,13*/);');
     });
 
     describe('attaching multiple comments for multiple references', () => {
@@ -158,7 +162,23 @@ describe('type check blocks diagnostics', () => {
         }];
         const TEMPLATE = `<my-cmp #a></my-cmp>{{ a || a }}`;
         expect(tcbWithSpans(TEMPLATE, DIRECTIVES))
-            .toContain('((_t2 /*23,24*/) || (_t2 /*28,29*/) /*23,29*/);');
+            .toContain('((_t1 /*23,24*/) || (_t1 /*28,29*/) /*23,29*/);');
+      });
+    });
+
+    describe('attaching comments for generic directive inputs', () => {
+      it('should be correct for directive refs', () => {
+        const DIRECTIVES: TestDeclaration[] = [{
+          type: 'directive',
+          name: 'MyComponent',
+          selector: 'my-cmp',
+          isComponent: true,
+          isGeneric: true,
+          inputs: {'inputA': 'inputA'},
+        }];
+        const TEMPLATE = `<my-cmp [inputA]="''"></my-cmp>`;
+        expect(tcbWithSpans(TEMPLATE, DIRECTIVES))
+            .toContain('_t1.inputA = ("" /*18,20*/) /*8,21*/;');
       });
     });
   });

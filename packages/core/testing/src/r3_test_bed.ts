@@ -327,12 +327,13 @@ export class TestBedRender3 implements TestBed {
    */
   overrideProvider(token: any, provider: {useFactory?: Function, useValue?: any, deps?: any[]}):
       void {
+    this.assertNotInstantiated('overrideProvider', 'override provider');
     this.compiler.overrideProvider(token, provider);
   }
 
   createComponent<T>(type: Type<T>): ComponentFixture<T> {
     const testComponentRenderer = this.inject(TestComponentRenderer);
-    const rootElId = `root-ng-internal-isolated-${_nextRootElementId++}`;
+    const rootElId = `root${_nextRootElementId++}`;
     testComponentRenderer.insertRootElement(rootElId);
 
     const componentDef = (type as any).ɵcmp;

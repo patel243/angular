@@ -10,6 +10,7 @@ import * as ts from 'typescript';
 
 import {absoluteFrom, getFileSystem, getSourceFileOrError} from '../../../src/ngtsc/file_system';
 import {runInEachFileSystem, TestFile} from '../../../src/ngtsc/file_system/testing';
+import {MockLogger} from '../../../src/ngtsc/logging/testing';
 import {ClassMemberKind, ConcreteDeclaration, CtorParameter, DownleveledEnum, isNamedClassDeclaration, isNamedFunctionDeclaration, isNamedVariableDeclaration, TypeScriptReflectionHost} from '../../../src/ngtsc/reflection';
 import {getDeclaration} from '../../../src/ngtsc/testing';
 import {walkForDeclaration} from '../../../src/ngtsc/testing/src/utils';
@@ -17,7 +18,6 @@ import {loadFakeCore, loadTestFiles} from '../../../test/helpers';
 import {DelegatingReflectionHost} from '../../src/host/delegating_host';
 import {Esm2015ReflectionHost} from '../../src/host/esm2015_host';
 import {BundleProgram} from '../../src/packages/bundle_program';
-import {MockLogger} from '../helpers/mock_logger';
 import {getRootFiles, makeTestBundleProgram, makeTestDtsBundleProgram} from '../helpers/utils';
 
 import {expectTypeValueReferencesForParameters} from './util';
@@ -1140,6 +1140,58 @@ runInEachFileSystem(() => {
     });
 
     describe('getConstructorParameters()', () => {
+      it('should retain imported name for type value references for decorated constructor parameter types',
+         () => {
+           const files = [
+             {
+               name: _('/node_modules/shared-lib/foo.d.ts'),
+               contents: `
+                declare class Foo {}
+                export {Foo as Bar};
+              `,
+             },
+             {
+               name: _('/node_modules/shared-lib/index.d.ts'),
+               contents: `
+                export {Bar as Baz} from './foo';
+              `,
+             },
+             {
+               name: _('/local.js'),
+               contents: `
+                 class Internal {}
+                 export {Internal as External};
+                 `
+             },
+             {
+               name: _('/main.js'),
+               contents: `
+                import {Baz} from 'shared-lib';
+                import {External} from './local';
+                export class SameFile {}
+
+                export class SomeClass {
+                  constructor(arg1, arg2, arg3) {}
+                }
+                SomeClass.ctorParameters = [{ type: Baz }, { type: External }, { type: SameFile }];
+              `,
+             },
+           ];
+
+           loadTestFiles(files);
+           const bundle = makeTestBundleProgram(_('/main.js'));
+           const host =
+               createHost(bundle, new Esm2015ReflectionHost(new MockLogger(), false, bundle));
+           const classNode =
+               getDeclaration(bundle.program, _('/main.js'), 'SomeClass', isNamedClassDeclaration);
+
+           const parameters = host.getConstructorParameters(classNode)!;
+
+           expect(parameters.map(p => p.name)).toEqual(['arg1', 'arg2', 'arg3']);
+           expectTypeValueReferencesForParameters(
+               parameters, ['Baz', 'External', 'SameFile'], ['shared-lib', './local', null]);
+         });
+
       it('should find the decorated constructor parameters', () => {
         loadFakeCore(getFileSystem());
         loadTestFiles([SOME_DIRECTIVE_FILE]);
@@ -1154,7 +1206,8 @@ runInEachFileSystem(() => {
           '_viewContainer', '_template', 'injected'
         ]);
         expectTypeValueReferencesForParameters(
-            parameters, ['ViewContainerRef', 'TemplateRef', null], '@angular/core');
+            parameters, ['ViewContainerRef', 'TemplateRef', null],
+            ['@angular/core', '@angular/core', null]);
       });
 
       it('should accept `ctorParameters` as an array', () => {
